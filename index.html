@@ -873,9 +873,9 @@ function renderHome(){
   h += '<div class="card">';
   if (!fs.length) h += '<div class="empty">还没有跟进记录<br><button class="mini" data-form="follow" style="margin-top:10px">＋ 记一笔跟进</button></div>';
   else h += fs.map(function(f){
-    return '<div class="row"><div class="rmain"><div class="rt" data-bd="follows" data-act="item-open" data-table="follows" data-id="' + f.id + '">' + esc(f.customer) +
+    return '<div class="row" data-act="item-open" data-table="follows" data-id="' + f.id + '"><div class="rmain"><div class="rt" data-bd="follows">' + esc(f.customer) +
       ' <span class="tag t-gray">' + esc(f.way) + '</span></div>' +
-      '<div class="rs" data-bd="follows" data-act="item-open" data-table="follows" data-id="' + f.id + '"><span>' + cnDate(f.date) + '</span><span>' + esc(f.content) + '</span></div></div>' +
+      '<div class="rs" data-bd="follows"><span>' + cnDate(f.date) + '</span><span>' + esc(f.content) + '</span></div></div>' +
       '<span class="chev">' + svg("chev") + '</span></div>';
   }).join("");
   h += '</div>';
@@ -1003,8 +1003,8 @@ function renderPay(){
       : '<button class="mini pri" data-act="pay-done" data-id="' + p.id + '">标已收款</button><button class="mini" data-act="pay-defer" data-id="' + p.id + '">顺延</button>';
     h += '<div class="card"><div class="row" style="padding-top:0;display:block">' +
       '<div style="display:flex;align-items:flex-start;gap:10px">' +
-      '<div style="flex:1;min-width:0"><div class="rt" data-bd="payments" data-act="item-open" data-table="payments" data-id="' + p.id + '">' + esc(p.period || "回款") + ' <span class="tag ' + tg + '">' + st + '</span></div>' +
-      '<div class="rs" data-bd="payments" data-act="item-open" data-table="payments" data-id="' + p.id + '"><span>' + esc(p.customer || "—") + '</span><span>' + esc(p.contract || "") + '</span></div>' +
+      '<div style="flex:1;min-width:0" data-act="item-open" data-table="payments" data-id="' + p.id + '"><div class="rt" data-bd="payments">' + esc(p.period || "回款") + ' <span class="tag ' + tg + '">' + st + '</span></div>' +
+      '<div class="rs" data-bd="payments"><span>' + esc(p.customer || "—") + '</span><span>' + esc(p.contract || "") + '</span></div>' +
       '<div class="rs" data-bd="payments"><span>应收 ' + cnDate(p.dueDate) + '</span><span>' + dueText(p.dueDate) + '</span>' +
       (p.status === "已收款" ? '<span>实收 ' + cnDate(p.paidDate) + '</span>' : '') +
       (num(p.defer) ? '<span style="color:var(--amber);font-weight:700">已顺延' + p.defer + '次</span>' : '') + '</div></div>' +
