@@ -125,7 +125,8 @@ main{padding:14px 16px calc(104px + env(safe-area-inset-bottom))}
 .empty .sub{font-size:12.5px;margin-top:6px;color:var(--ink-4)}
 
 .kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-card);padding:14px 14px 13px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-card);padding:14px 14px 13px;display:block;width:100%;text-align:left;transition:transform var(--t-fast)}
+.kpi:active{transform:scale(.98)}
 .kpi .badge{width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;margin-bottom:9px}
 .kpi .lab{font-size:12px;color:var(--ink-3);font-weight:600}
 .kpi .val{font-size:24px;font-weight:700;letter-spacing:-.02em;margin-top:3px;line-height:1.15}
@@ -273,7 +274,7 @@ main{padding:14px 16px calc(104px + env(safe-area-inset-bottom))}
 <div id="app">
   <header class="topbar">
     <div class="tb-title">培训师工作台<small id="tb-date">—</small></div>
-    <span class="sync-pill" id="sync-pill"><i class="dot"></i><span id="sync-txt">同步中</span></span>
+    <button class="sync-pill" id="sync-pill" title="点击立即刷新"><i class="dot"></i><span id="sync-txt">同步中</span></button>
     <button class="icon-btn" id="btn-set" aria-label="设置">
       <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:19px;height:19px">
         <circle cx="12" cy="12" r="3"/>
@@ -663,6 +664,7 @@ function commit(msg){
   }).then(function(ok){
     cacheWrite();
     render();
+    reopenDetail();
     if (ok) { setSync("ok", "已同步"); if (msg) toast(msg); }
     else { setSync("off", NEED_LOGIN ? "未登录·只读" : "离线模式"); if (msg) toast(msg + (NEED_LOGIN ? "（未登录，仅存本机）" : "（待联网同步）")); }
   });
@@ -837,7 +839,8 @@ function renderHome(){
        (overdue ? '<span class="warn">' + overdue + ' 项逾期</span>' : '') + '</div>';
   h += '<div class="card today">';
   if (!items.length) {
-    h += '<div class="empty"><div class="big">今天没有待办，干得漂亮！</div><div class="sub">点右下角 + 添加你的第一个任务</div></div>';
+    h += '<div class="empty"><div class="big">今天没有待办，干得漂亮！</div>' +
+         '<div class="sub" style="margin-top:12px"><button class="mini pri" data-act="fab">＋ 添加第一个任务</button></div></div>';
   } else {
     h += show.map(function(i){
       var act = "";
@@ -845,8 +848,8 @@ function renderHome(){
       else if (i.kind === "task") act = '<button class="mini pri" data-act="task-done" data-id="' + i.id + '">标完成</button><button class="mini" data-act="task-defer" data-id="' + i.id + '">顺延</button>';
       else act = '<button class="mini pri" data-act="course-done" data-id="' + i.id + '">标已结课</button>';
       return '<div class="todo-item"><span class="pdot p' + i.pr + '"></span><div class="todo-main">' +
-        '<div class="todo-t" data-bd="' + i.table + '">' + esc(i.title) + ' ' + i.tags.join(" ") + '</div>' +
-        '<div class="todo-s" data-bd="' + i.table + '"><span>' + esc(i.sub) + '</span><span>·</span><span>' + cnDate(i.due) + ' ' + dueText(i.due) + '</span></div>' +
+        '<div class="todo-t" data-bd="' + i.table + '" data-act="item-open" data-table="' + i.table + '" data-id="' + i.id + '">' + esc(i.title) + ' ' + i.tags.join(" ") + '</div>' +
+        '<div class="todo-s" data-bd="' + i.table + '" data-act="item-open" data-table="' + i.table + '" data-id="' + i.id + '"><span>' + esc(i.sub) + '</span><span>·</span><span>' + cnDate(i.due) + ' ' + dueText(i.due) + '</span></div>' +
         '<div class="todo-acts">' + act + '</div></div></div>';
     }).join("");
     if (items.length > 10) {
@@ -857,22 +860,22 @@ function renderHome(){
   h += '</div>';
 
   h += '<div class="sec-title">经营指标</div><div class="kpi-grid">';
-  h += kpi("本月课酬收入", money(monthReceived()), "本月已到账回款", '<path d="M12 2v20M17 6H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>', "green", "payments");
-  h += kpi("待收款", money(pendingAmount()), '其中逾期 <span class="r">' + money(overdueAmount()) + '</span>', '<path d="M3 7h18v12H3z"/><path d="M16 13h2"/>', "blue", "payments");
-  h += kpi("本月课时数", num(monthHours()) + " 课时", "进行中课程合计", '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>', "teal", "courses");
+  h += kpi("本月课酬收入", money(monthReceived()), "本月已到账回款", '<path d="M12 2v20M17 6H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>', "green", "payments", "pay");
+  h += kpi("待收款", money(pendingAmount()), '其中逾期 <span class="r">' + money(overdueAmount()) + '</span>', '<path d="M3 7h18v12H3z"/><path d="M16 13h2"/>', "blue", "payments", "pay");
+  h += kpi("本月课时数", num(monthHours()) + " 课时", "进行中课程合计", '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>', "teal", "courses", "course");
   var oc = openContracts();
   var ocAmt = oc.reduce(function(a, c){ return a + num(c.amount); }, 0);
-  h += kpi("活跃客户", activeCustomers() + " 家", "在途合同 " + oc.length + " 份 · " + money(ocAmt), '<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.9"/>', "primary", "customers");
+  h += kpi("活跃客户", activeCustomers() + " 家", "在途合同 " + oc.length + " 份 · " + money(ocAmt), '<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.9"/>', "primary", "customers", "project");
   h += '</div>';
 
   h += '<div class="sec-title">最近跟进</div>';
   var fs = DB.follows.slice().sort(function(a, b){ return dd(b.date, a.date); }).slice(0, 3);
   h += '<div class="card">';
-  if (!fs.length) h += '<div class="empty">还没有跟进记录，点右下角 + 记一笔</div>';
+  if (!fs.length) h += '<div class="empty">还没有跟进记录<br><button class="mini" data-form="follow" style="margin-top:10px">＋ 记一笔跟进</button></div>';
   else h += fs.map(function(f){
-    return '<div class="row"><div class="rmain"><div class="rt" data-bd="follows">' + esc(f.customer) +
+    return '<div class="row"><div class="rmain"><div class="rt" data-bd="follows" data-act="item-open" data-table="follows" data-id="' + f.id + '">' + esc(f.customer) +
       ' <span class="tag t-gray">' + esc(f.way) + '</span></div>' +
-      '<div class="rs" data-bd="follows"><span>' + cnDate(f.date) + '</span><span>' + esc(f.content) + '</span></div></div>' +
+      '<div class="rs" data-bd="follows" data-act="item-open" data-table="follows" data-id="' + f.id + '"><span>' + cnDate(f.date) + '</span><span>' + esc(f.content) + '</span></div></div>' +
       '<span class="chev">' + svg("chev") + '</span></div>';
   }).join("");
   h += '</div>';
@@ -882,16 +885,16 @@ function renderHome(){
   markBinds(el);
 }
 
-function kpi(lab, val, sub, path, tone, table){
+function kpi(lab, val, sub, path, tone, table, goto){
   var map = {
     green: ["var(--green-50)", "var(--green)"], blue: ["var(--blue-50)", "var(--primary-600)"],
     teal: ["var(--teal-50)", "var(--teal)"], primary: ["var(--primary-50)", "var(--primary)"]
   };
   var t = map[tone] || map.blue;
-  return '<div class="kpi"><div class="badge" style="background:' + t[0] + ';color:' + t[1] + '">' +
+  return '<button class="kpi" data-act="goto" data-view="' + (goto || "home") + '"><div class="badge" style="background:' + t[0] + ';color:' + t[1] + '">' +
     '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + path + '</svg></div>' +
     '<div class="lab">' + lab + '</div><div class="val num" data-bd="' + table + '">' + val + '</div>' +
-    '<div class="sub" data-bd="' + table + '">' + sub + '</div></div>';
+    '<div class="sub" data-bd="' + table + '">' + sub + '</div></button>';
 }
 function svg(n){
   var p = {
@@ -912,7 +915,7 @@ function renderProject(){
       return '<button class="chip ' + (ui.contractFilter === s ? "on" : "") + '" data-ptype="' + s + '">' + s + '</button>';
     }).join("") + '</div>';
     var ks = DB.contracts.filter(function(c){ return ui.contractFilter === "全部" || c.status === ui.contractFilter; });
-    if (!ks.length) h += '<div class="card"><div class="empty">还没有合同，点右下角 + 新建项目（合同）</div></div>';
+    if (!ks.length) h += '<div class="card"><div class="empty">还没有合同<br><button class="mini" data-form="contract" style="margin-top:10px">＋ 新建项目（合同）</button></div></div>';
     ks.forEach(function(c){
       var paid = contractPaid(c.name), rate = num(c.amount) ? Math.min(100, Math.round(paid / num(c.amount) * 100)) : 0;
       var st = c.status === "履约中" ? "t-blue" : (c.status === "已完成" ? "t-green" : "t-gray");
@@ -929,7 +932,7 @@ function renderProject(){
     var cs = DB.customers.filter(function(c){
       return !ui.q || (c.name + c.contact + (c.course || "")).indexOf(ui.q) >= 0;
     });
-    if (!cs.length) h += '<div class="card"><div class="empty">没有匹配的客户</div></div>';
+    if (!cs.length) h += '<div class="card"><div class="empty">没有匹配的客户<br><button class="mini" data-form="customer" style="margin-top:10px">＋ 新建客户</button></div></div>';
     cs.forEach(function(c){
       var overdueFollow = c.nextFollow && dd(c.nextFollow, TODAY) < 0;
       var st = { "潜在客户": "t-gray", "洽谈中": "t-amber", "已签约": "t-blue", "已交付": "t-green", "沉默": "t-gray" }[c.status] || "t-gray";
@@ -966,7 +969,7 @@ function renderCourse(){
     '<div class="sum"><div class="lab">累计学员</div><div class="val num" data-bd="courses">' + totalStu + '</div></div>' +
     '<div class="sum green"><div class="lab">课酬合计</div><div class="val num" data-bd="courses">' + money(DB.courses.reduce(function(a, c){ return a + num(c.fee); }, 0)) + '</div></div></div>';
   var cs = DB.courses.filter(function(c){ return ui.courseFilter === "全部" || c.status === ui.courseFilter; });
-  if (!cs.length) h += '<div class="card"><div class="empty">还没有课程，点右下角 + 新建课程</div></div>';
+  if (!cs.length) h += '<div class="card"><div class="empty">还没有课程<br><button class="mini" data-form="course" style="margin-top:10px">＋ 新建课程</button></div></div>';
   cs.forEach(function(c){
     var st = { "招生中": "t-amber", "进行中": "t-blue", "已结课": "t-green" }[c.status] || "t-gray";
     h += '<div class="card"><div class="row" data-act="course-open" data-id="' + c.id + '" style="padding-top:0">' +
@@ -991,7 +994,7 @@ function renderPay(){
   }).join("") + '</div>';
   var ps = DB.payments.filter(function(p){ return ui.payFilter === "全部" || payState(p) === ui.payFilter; });
   ps.sort(function(a, b){ return dd(a.dueDate, b.dueDate) - dd(b.dueDate, b.dueDate); });
-  if (!ps.length) h += '<div class="card"><div class="empty">没有匹配的回款计划</div></div>';
+  if (!ps.length) h += '<div class="card"><div class="empty">没有匹配的回款计划<br><button class="mini" data-form="payment" style="margin-top:10px">＋ 新建回款计划</button></div></div>';
   ps.forEach(function(p){
     var st = payState(p);
     var tg = st === "已收款" ? "t-green" : (st === "逾期" ? "t-red" : "t-blue");
@@ -1000,8 +1003,8 @@ function renderPay(){
       : '<button class="mini pri" data-act="pay-done" data-id="' + p.id + '">标已收款</button><button class="mini" data-act="pay-defer" data-id="' + p.id + '">顺延</button>';
     h += '<div class="card"><div class="row" style="padding-top:0;display:block">' +
       '<div style="display:flex;align-items:flex-start;gap:10px">' +
-      '<div style="flex:1;min-width:0"><div class="rt" data-bd="payments">' + esc(p.period || "回款") + ' <span class="tag ' + tg + '">' + st + '</span></div>' +
-      '<div class="rs" data-bd="payments"><span>' + esc(p.customer || "—") + '</span><span>' + esc(p.contract || "") + '</span></div>' +
+      '<div style="flex:1;min-width:0"><div class="rt" data-bd="payments" data-act="item-open" data-table="payments" data-id="' + p.id + '">' + esc(p.period || "回款") + ' <span class="tag ' + tg + '">' + st + '</span></div>' +
+      '<div class="rs" data-bd="payments" data-act="item-open" data-table="payments" data-id="' + p.id + '"><span>' + esc(p.customer || "—") + '</span><span>' + esc(p.contract || "") + '</span></div>' +
       '<div class="rs" data-bd="payments"><span>应收 ' + cnDate(p.dueDate) + '</span><span>' + dueText(p.dueDate) + '</span>' +
       (p.status === "已收款" ? '<span>实收 ' + cnDate(p.paidDate) + '</span>' : '') +
       (num(p.defer) ? '<span style="color:var(--amber);font-weight:700">已顺延' + p.defer + '次</span>' : '') + '</div></div>' +
@@ -1016,6 +1019,16 @@ function renderPay(){
 /* ===================== 弹层与表单 ===================== */
 var overlay = document.getElementById("overlay"), shBody = document.getElementById("sh-body"),
     shFoot = document.getElementById("sh-foot"), shTitle = document.getElementById("sh-title");
+var curDetail = null;   // 当前打开的详情，数据变更后自动重绘
+var DETAIL_TABLE = { customer: "customers", contract: "contracts", course: "courses" };
+function reopenDetail(){
+  if (!curDetail) return;
+  var d = curDetail;
+  if (!byId(DETAIL_TABLE[d.t] || "customers", d.id)) { closeSheet(); return; }
+  if (d.t === "customer") openCustomer(d.id);
+  else if (d.t === "contract") openContract(d.id);
+  else if (d.t === "course") openCourseDetail(d.id);
+}
 
 function openSheet(title, body, foot){
   shTitle.textContent = title;
@@ -1023,7 +1036,7 @@ function openSheet(title, body, foot){
   if (foot) { shFoot.innerHTML = foot; shFoot.classList.remove("hide"); } else { shFoot.innerHTML = ""; shFoot.classList.add("hide"); }
   overlay.classList.add("on");
 }
-function closeSheet(){ overlay.classList.remove("on"); }
+function closeSheet(){ overlay.classList.remove("on"); curDetail = null; }
 document.getElementById("mask").addEventListener("click", closeSheet);
 document.getElementById("sh-close").addEventListener("click", closeSheet);
 
@@ -1040,8 +1053,11 @@ function confirmSheet(title, msg, okText, onOk){
   document.getElementById("cf-ok").onclick = function(){ closeSheet(); onOk(); };
 }
 
+var FORM_BY_TABLE = { customers: "customer", tasks: "task", contracts: "contract",
+  payments: "payment", courses: "course", follows: "follow" };
+
 var FORMS = {
-  task: { title: "新建待办", table: "tasks", fields: [
+  task: { title: "新建待办", et: "编辑待办", table: "tasks", fields: [
     { k: "title", l: "标题", t: "text", req: true, ph: "例如：催首款 / 发报价单" },
     { k: "type", l: "类型", t: "select", o: ENUM.taskType, def: "跟进" },
     { k: "customer", l: "关联客户", t: "cust" },
@@ -1049,7 +1065,7 @@ var FORMS = {
     { k: "amount", l: "金额（可空）", t: "number" },
     { k: "note", l: "说明", t: "textarea" }
   ]},
-  customer: { title: "新建客户", table: "customers", fields: [
+  customer: { title: "新建客户", et: "编辑客户", table: "customers", fields: [
     { k: "name", l: "客户名称", t: "text", req: true, ph: "例如：某某科技·人力资源部" },
     { k: "type", l: "类型", t: "select", o: ENUM.custType, def: "企业客户" },
     { k: "contact", l: "联系人", t: "text" },
@@ -1059,7 +1075,7 @@ var FORMS = {
     { k: "nextFollow", l: "下次跟进", t: "date" },
     { k: "note", l: "备注", t: "textarea" }
   ]},
-  course: { title: "新建课程", table: "courses", fields: [
+  course: { title: "新建课程", et: "编辑课程", table: "courses", fields: [
     { k: "name", l: "课程名称", t: "text", req: true },
     { k: "status", l: "状态", t: "select", o: ENUM.courseStatus, def: "招生中" },
     { k: "students", l: "学员数", t: "number", def: 0 },
@@ -1069,7 +1085,7 @@ var FORMS = {
     { k: "deliverDate", l: "交付日期", t: "date" },
     { k: "note", l: "备注", t: "textarea" }
   ]},
-  contract: { title: "新建项目（合同）", table: "contracts", fields: [
+  contract: { title: "新建项目（合同）", et: "编辑合同", table: "contracts", fields: [
     { k: "name", l: "合同名称", t: "text", req: true, ph: "例如：关键对话·企业内训合同" },
     { k: "customer", l: "客户", t: "cust" },
     { k: "amount", l: "合同金额", t: "number", req: true },
@@ -1077,7 +1093,7 @@ var FORMS = {
     { k: "status", l: "状态", t: "select", o: ENUM.contractStatus, def: "履约中" },
     { k: "note", l: "备注", t: "textarea" }
   ]},
-  payment: { title: "新建回款计划", table: "payments", fields: [
+  payment: { title: "新建回款计划", et: "编辑回款计划", table: "payments", fields: [
     { k: "contract", l: "关联合同", t: "contract" },
     { k: "customer", l: "客户", t: "cust" },
     { k: "period", l: "期次", t: "text", req: true, ph: "例如：首款 40%" },
@@ -1086,7 +1102,7 @@ var FORMS = {
     { k: "status", l: "状态", t: "select", o: ENUM.payStatus, def: "未到期" },
     { k: "paidDate", l: "实收日期（已收款时填）", t: "date" }
   ]},
-  follow: { title: "记一笔跟进", table: "follows", fields: [
+  follow: { title: "记一笔跟进", et: "编辑跟进记录", table: "follows", fields: [
     { k: "customer", l: "客户", t: "cust", req: true },
     { k: "date", l: "跟进日期", t: "date", def: TODAY },
     { k: "way", l: "方式", t: "select", o: ENUM.followWay, def: "微信" },
@@ -1100,6 +1116,7 @@ function contractOptions(){ return DB.contracts.map(function(c){ return c.name; 
 function openForm(key, rec){
   var f = FORMS[key];
   if (!f) return;
+  curDetail = null;
   var vals = rec ? JSON.parse(JSON.stringify(rec)) : {};
   f.fields.forEach(function(fd){ if (vals[fd.k] === undefined && fd.def !== undefined) vals[fd.k] = fd.def; });
   var draft = null;
@@ -1131,7 +1148,7 @@ function openForm(key, rec){
 
   var foot = '<button class="btn" data-act="cancel">取消</button><button class="btn pri" id="f-ok">' + (rec ? "保存修改" : "保存") + '</button>' +
     (rec ? '<button class="btn dgr" id="f-del" style="flex:0 0 56px">' + svg("del") + '</button>' : "");
-  openSheet(f.title, body, foot);
+  openSheet(rec ? (f.et || f.title) : f.title, body, foot);
 
   var saveDraftTimer;
   Array.prototype.forEach.call(shBody.querySelectorAll("[data-fk]"), function(el){
@@ -1207,6 +1224,7 @@ document.getElementById("fab").addEventListener("click", function(){
 function openCustomer(id){
   var c = byId("customers", id);
   if (!c) return;
+  curDetail = { t: "customer", id: id };
   var fs = DB.follows.filter(function(f){ return f.customer === c.name; }).sort(function(a, b){ return dd(b.date, a.date); });
   var ks = DB.contracts.filter(function(x){ return x.customer === c.name; });
   var ts = DB.tasks.filter(function(t){ return t.customer === c.name && t.status !== "已完成"; });
@@ -1221,10 +1239,22 @@ function openCustomer(id){
   b += '<div class="note" style="background:#fff" data-bd="customers">' +
     '报名课程：<b>' + esc(c.course || "—") + '</b><br>最近跟进：<b>' + cnDate(c.lastFollow) + '</b>　下次跟进：<b>' + cnDate(c.nextFollow) + '</b>' +
     (c.note ? '<br>备注：<b>' + esc(c.note) + '</b>' : "") + '</div>';
+  if (ts.length) {
+    b += '<div class="sec-title">未办待办<span class="cnt" data-bd="tasks">' + ts.length + '</span></div>';
+    b += ts.map(function(t){
+      return '<div class="card" style="margin-bottom:8px;box-shadow:none;padding:12px 14px">' +
+        '<div class="rt" data-bd="tasks" data-act="item-open" data-table="tasks" data-id="' + t.id + '">' + esc(t.title) +
+        ' <span class="tag t-gray">' + esc(t.type) + '</span></div>' +
+        '<div class="rs" data-bd="tasks"><span>' + cnDate(t.due) + ' ' + dueText(t.due) + '</span>' +
+        (num(t.defer) ? '<span style="color:var(--amber);font-weight:700">已顺延 ' + t.defer + ' 次</span>' : '') + '</div>' +
+        '<div class="todo-acts"><button class="mini pri" data-act="task-done" data-id="' + t.id + '">标完成</button>' +
+        '<button class="mini" data-act="task-defer" data-id="' + t.id + '">顺延</button></div></div>';
+    }).join("");
+  }
   b += '<div class="sec-title">跟进时间线<span class="cnt" data-bd="follows">' + fs.length + '</span></div>';
   if (!fs.length) b += '<div class="empty">还没有跟进记录</div>';
   else b += '<div class="tl">' + fs.map(function(f){
-    return '<div class="node" data-bd="follows"><div class="nd">' + cnDate(f.date) + ' · ' + esc(f.way) + '</div>' +
+    return '<div class="node" data-bd="follows" data-act="item-open" data-table="follows" data-id="' + f.id + '"><div class="nd">' + cnDate(f.date) + ' · ' + esc(f.way) + '</div>' +
       '<div class="nc">' + esc(f.content) + '</div>' +
       (f.next ? '<div class="np">下次：' + esc(f.next) + '</div>' : "") + '</div>';
   }).join("") + '</div>';
@@ -1232,7 +1262,7 @@ function openCustomer(id){
     b += '<div class="sec-title">关联合同</div>';
     ks.forEach(function(x){
       var paid = contractPaid(x.name), rate = num(x.amount) ? Math.min(100, Math.round(paid / num(x.amount) * 100)) : 0;
-      b += '<div class="card" style="margin-bottom:10px"><div class="rt" data-bd="contracts">' + esc(x.name) + ' <span class="tag t-blue">' + esc(x.status) + '</span></div>' +
+      b += '<div class="card" style="margin-bottom:10px"><div class="rt" data-bd="contracts" data-act="contract-open" data-id="' + x.id + '">' + esc(x.name) + ' <span class="tag t-blue">' + esc(x.status) + '</span></div>' +
         '<div class="rs" data-bd="contracts" style="margin-top:4px">签约 ' + cnDate(x.signDate) + ' · ' + money(x.amount) + '</div>' +
         '<div class="pbar"><i style="width:' + rate + '%"></i></div><div class="pline"><span data-bd="payments">回款进度 ' + rate + '%</span><span data-bd="payments">待收 ' + money(num(x.amount) - paid) + '</span></div></div>';
     });
@@ -1245,6 +1275,7 @@ function openCustomer(id){
 function openContract(id){
   var c = byId("contracts", id);
   if (!c) return;
+  curDetail = { t: "contract", id: id };
   var ps = DB.payments.filter(function(p){ return p.contract === c.name; });
   var paid = ps.filter(function(p){ return p.status === "已收款"; }).reduce(function(a, p){ return a + num(p.amount); }, 0);
   var rate = num(c.amount) ? Math.min(100, Math.round(paid / num(c.amount) * 100)) : 0;
@@ -1258,8 +1289,12 @@ function openContract(id){
   else b += ps.map(function(p){
     var st = payState(p);
     var tg = st === "已收款" ? "t-green" : (st === "逾期" ? "t-red" : "t-blue");
-    return '<div class="card" style="margin-bottom:10px;box-shadow:none"><div class="rt" data-bd="payments">' + esc(p.period) + ' <span class="tag ' + tg + '">' + st + '</span></div>' +
-      '<div class="rs" data-bd="payments" style="margin-top:4px">' + money(p.amount) + ' · 应收 ' + cnDate(p.dueDate) + ' · ' + dueText(p.dueDate) + '</div></div>';
+    var pact = st === "已收款"
+      ? '<button class="mini" data-act="pay-undo" data-id="' + p.id + '">撤销收款</button>'
+      : '<button class="mini pri" data-act="pay-done" data-id="' + p.id + '">标已收款</button><button class="mini" data-act="pay-defer" data-id="' + p.id + '">顺延</button>';
+    return '<div class="card" style="margin-bottom:10px;box-shadow:none"><div class="rt" data-bd="payments" data-act="item-open" data-table="payments" data-id="' + p.id + '">' + esc(p.period) + ' <span class="tag ' + tg + '">' + st + '</span></div>' +
+      '<div class="rs" data-bd="payments" style="margin-top:4px">' + money(p.amount) + ' · 应收 ' + cnDate(p.dueDate) + ' · ' + dueText(p.dueDate) + '</div>' +
+      '<div class="todo-acts">' + pact + '</div></div>';
   }).join("");
   if (c.note) b += '<div class="note" data-bd="contracts">' + esc(c.note) + '</div>';
   var foot = '<button class="btn" data-act="contract-edit" data-id="' + c.id + '">编辑</button>' +
@@ -1270,6 +1305,7 @@ function openContract(id){
 function openCourseDetail(id){
   var c = byId("courses", id);
   if (!c) return;
+  curDetail = { t: "course", id: id };
   var b = '<div class="sum3" style="margin-bottom:16px">' +
     '<div class="sum"><div class="lab">学员</div><div class="val num" data-bd="courses">' + num(c.students) + '</div></div>' +
     '<div class="sum"><div class="lab">课时</div><div class="val num" data-bd="courses">' + num(c.hours) + '</div></div>' +
@@ -1312,6 +1348,25 @@ document.addEventListener("click", function(e){
   var id = el.getAttribute("data-id");
   switch (a) {
     case "cancel": closeSheet(); break;
+    case "item-open": {
+      var tb2 = el.getAttribute("data-table");
+      var rec2 = tb2 ? byId(tb2, id) : null;
+      if (!rec2) { toast("这条记录已经不在了"); break; }
+      if (FORM_BY_TABLE[tb2]) openForm(FORM_BY_TABLE[tb2], rec2);
+      break;
+    }
+    case "goto": {
+      var gv = el.getAttribute("data-view") || "home";
+      if (gv === "project") ui.projTab = "customer";
+      closeSheet();
+      setView(gv);
+      break;
+    }
+    case "fab": {
+      closeSheet();
+      document.getElementById("fab").click();
+      break;
+    }
     case "toggle-all": ui.showAll = !ui.showAll; renderHome(); break;
     case "task-done": {
       var t = byId("tasks", id);
@@ -1371,6 +1426,16 @@ document.addEventListener("click", function(e){
 
 /* ===================== 设置与数据管理 ===================== */
 document.getElementById("btn-set").addEventListener("click", openSettings);
+document.getElementById("sync-pill").addEventListener("click", function(){
+  if (!CLOUD) { toast("本地模式：在资料库里打开本页即可云端同步"); return; }
+  if (!navigator.onLine) { setSync("off", "离线模式"); toast("当前离线，改动已存本机"); return; }
+  setSync("busy", "同步中");
+  cloudLoad().then(function(){
+    cacheWrite(); render(); setSync("ok", "已同步"); toast("已拉取云端最新数据");
+  }, function(){
+    setSync("off", "离线模式"); toast("拉取失败，沿用本机缓存");
+  });
+});
 function openSettings(){
   var b = '<div class="note" style="margin-top:0"><b>数据存在哪：</b>' +
     (CLOUD
