@@ -14,13 +14,18 @@
 <!--
   画像：A · 经营型（职业培训师，独立承接企业订单：自己接单 → 签合同 → 交付 → 追回款）
   四 Tab：进度总览 / 项目 / 课程 / 回款
-  数据表：客户表 · 待办任务表 · 合同表 · 回款计划表 · 课程表 · 跟进记录表
-  数据方案：localStorage 本地缓存 + GitHub 私有 Gist 云端同步（令牌仅存本机，不写入页面）
+  数据表（资料库云端表，多设备实时同步）：
+    客户表     NrhfjbMF1uWqT2irVzd6E0
+    待办任务表 GBjWz7FILOGUf6bifUumKw
+    合同表     nBbxGVftQP2J9PPlAjFram
+    回款计划表 BQgBPbfpJyzwaedzOp4qCd
+    课程表     EnTdoNOfsmBm8ZjMcQO7yE
+    跟进记录表 2c5h8d15peeMhlrbvSxBpz
+  降级：云端不可用时读写 localStorage 本地缓存，联网后自动回补
   可调参数：
     OVERDUE_P0 = 30          逾期≥30天判定 P0（红色置顶）
     DEFERS     = [1,3,7,30]  顺延档位
-    NEAR_DAYS  = 7           交付/到期提前提醒天数（P3）
-    SEED_DEMO  = true        首次打开写入示例数据（含 1 条逾期项）
+    NEAR_DAYS  = 7           到期提前提醒天数（P3）
 -->
 <!-- ================================================= -->
 
@@ -54,7 +59,6 @@ input,select,textarea{font-family:inherit;font-size:16px;color:var(--ink)}
 .num{font-variant-numeric:tabular-nums}
 :focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:6px}
 
-/* ---------- 顶栏 ---------- */
 .topbar{
   position:sticky;top:0;z-index:60;
   background:rgba(255,255,255,.86);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
@@ -82,13 +86,11 @@ input,select,textarea{font-family:inherit;font-size:16px;color:var(--ink)}
 }
 .icon-btn:active{transform:scale(.94)}
 
-/* ---------- 提示条 ---------- */
 .bar{padding:9px 16px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px}
 .bar.off{background:var(--amber-50);color:var(--amber);border-bottom:1px solid #FDE9C8}
 .bar.tip{background:var(--blue-50);color:var(--primary-600);border-bottom:1px solid #DBE7FE}
 .bar button{margin-left:auto;font-size:12.5px;font-weight:700;color:inherit;text-decoration:underline}
 
-/* ---------- 主体 ---------- */
 main{padding:14px 16px calc(104px + env(safe-area-inset-bottom))}
 .sec-title{display:flex;align-items:center;gap:8px;margin:18px 2px 10px;font-size:15px;font-weight:700}
 .sec-title:first-child{margin-top:4px}
@@ -99,12 +101,10 @@ main{padding:14px 16px calc(104px + env(safe-area-inset-bottom))}
 .card + .card{margin-top:10px}
 .card.today{border-color:#FBD5D5}
 
-/* 优先级圆点 */
 .pdot{position:relative;width:9px;height:9px;border-radius:50%;flex:0 0 9px;margin-top:6px}
 .pdot::after{content:"";position:absolute;inset:-4px;border-radius:50%;background:inherit;opacity:.14}
 .p0,.p1{background:var(--red)} .p2{background:var(--amber)} .p3{background:var(--blue)}
 
-/* 今日条目 */
 .todo-item{display:flex;gap:12px;padding:13px 0;border-top:1px solid var(--line-2)}
 .todo-item:first-child{border-top:none;padding-top:2px}
 .todo-item:last-child{padding-bottom:2px}
@@ -124,7 +124,6 @@ main{padding:14px 16px calc(104px + env(safe-area-inset-bottom))}
 .empty .big{font-size:15px;color:var(--green);font-weight:700}
 .empty .sub{font-size:12.5px;margin-top:6px;color:var(--ink-4)}
 
-/* KPI */
 .kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-card);padding:14px 14px 13px}
 .kpi .badge{width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;margin-bottom:9px}
@@ -134,7 +133,6 @@ main{padding:14px 16px calc(104px + env(safe-area-inset-bottom))}
 .kpi .sub .r{color:var(--red);font-weight:700}
 .kpi .sub .g{color:var(--green);font-weight:700}
 
-/* chips */
 .chips{display:flex;gap:8px;overflow-x:auto;padding:2px 0 12px;scrollbar-width:none}
 .chips::-webkit-scrollbar{display:none}
 .chip{height:36px;padding:0 15px;border-radius:999px;background:#fff;border:1px solid var(--line);
@@ -145,13 +143,11 @@ main{padding:14px 16px calc(104px + env(safe-area-inset-bottom))}
 .seg button{flex:1;height:36px;border-radius:10px;font-size:14px;font-weight:600;color:var(--ink-3)}
 .seg button.on{background:#fff;color:var(--primary);box-shadow:0 1px 3px rgba(15,23,42,.10)}
 
-/* 搜索 */
 .search{height:46px;border-radius:14px;background:#EFF2F7;border:none;width:100%;padding:0 14px 0 40px;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-3.5-3.5'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:14px center;margin-bottom:12px;transition:box-shadow var(--t-fast),background-color var(--t-fast)}
 .search:focus{outline:none;background-color:#fff;box-shadow:0 0 0 4px rgba(37,99,235,.14), 0 0 0 1px var(--primary) inset}
 
-/* 列表卡 */
 .row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:13px 0;border-top:1px solid var(--line-2)}
 .row:first-child{border-top:none}
 .row .rmain{flex:1;min-width:0}
@@ -162,7 +158,6 @@ main{padding:14px 16px calc(104px + env(safe-area-inset-bottom))}
 .row .rl{font-size:11.5px;color:var(--ink-4);margin-top:2px}
 .chev{flex:0 0 16px;color:var(--ink-4)}
 
-/* tag */
 .tag{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:999px;font-size:11.5px;font-weight:700;white-space:nowrap}
 .t-blue{background:var(--blue-50);color:var(--primary-600)}
 .t-green{background:var(--green-50);color:var(--green)}
@@ -171,19 +166,16 @@ main{padding:14px 16px calc(104px + env(safe-area-inset-bottom))}
 .t-teal{background:var(--teal-50);color:var(--teal)}
 .t-gray{background:#F1F4F9;color:var(--ink-3)}
 
-/* 进度条 */
 .pbar{height:8px;border-radius:999px;background:#EDF1F6;overflow:hidden;margin-top:10px}
 .pbar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#34D399,#059669)}
 .pline{display:flex;justify-content:space-between;font-size:11.5px;color:var(--ink-4);margin-top:6px}
 
-/* 汇总卡三连 */
 .sum3{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
 .sum{background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);box-shadow:var(--shadow-card);padding:12px 10px;text-align:center}
 .sum .lab{font-size:11px;color:var(--ink-3);font-weight:600}
 .sum .val{font-size:17px;font-weight:700;margin-top:4px;letter-spacing:-.02em}
 .sum.red .val{color:var(--red)} .sum.green .val{color:var(--green)}
 
-/* 时间线 */
 .tl{position:relative;padding-left:18px;margin-top:6px}
 .tl::before{content:"";position:absolute;left:4px;top:6px;bottom:6px;width:2px;background:var(--line)}
 .tl .node{position:relative;padding:0 0 14px}
@@ -194,7 +186,6 @@ main{padding:14px 16px calc(104px + env(safe-area-inset-bottom))}
 .tl .nc{font-size:14px;margin-top:2px;color:var(--ink-2);word-break:break-word}
 .tl .np{font-size:12px;color:var(--ink-4);margin-top:3px}
 
-/* 底部 Tab */
 .tabbar{
   position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:430px;z-index:70;
   background:rgba(255,255,255,.88);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
@@ -207,7 +198,6 @@ main{padding:14px 16px calc(104px + env(safe-area-inset-bottom))}
 .tabbar .tab svg{width:23px;height:23px}
 .tabbar .tab .bdg{position:absolute;top:2px;right:calc(50% - 20px);min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:var(--red);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center}
 
-/* FAB */
 .fab{
   position:fixed;z-index:75;bottom:calc(72px + env(safe-area-inset-bottom));
   right:max(16px, calc(50% - 215px + 16px));
@@ -218,7 +208,6 @@ main{padding:14px 16px calc(104px + env(safe-area-inset-bottom))}
 }
 .fab:active{transform:scale(.92)}
 
-/* 弹层 */
 .overlay{position:fixed;inset:0;z-index:90;display:none}
 .overlay.on{display:block}
 .overlay .mask{position:absolute;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
@@ -240,7 +229,6 @@ main{padding:14px 16px calc(104px + env(safe-area-inset-bottom))}
 .btn.dgr{background:var(--red);color:#fff}
 .btn.sm{height:44px;font-size:15px}
 
-/* 表单 */
 .field{margin-bottom:13px}
 .field label{display:block;font-size:13px;font-weight:600;color:var(--ink-2);margin-bottom:6px}
 .field input,.field select,.field textarea{
@@ -252,7 +240,6 @@ main{padding:14px 16px calc(104px + env(safe-area-inset-bottom))}
 .field .hint{font-size:11.5px;color:var(--ink-4);margin-top:5px}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 
-/* FAB 菜单 */
 .menu-item{display:flex;align-items:center;gap:13px;width:100%;padding:14px 2px;text-align:left;border-top:1px solid var(--line-2)}
 .menu-item:first-child{border-top:none}
 .menu-item .mb{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex:0 0 38px}
@@ -260,7 +247,6 @@ main{padding:14px 16px calc(104px + env(safe-area-inset-bottom))}
 .menu-item .ms{font-size:12px;color:var(--ink-4);margin-top:2px}
 .menu-item .chev{margin-left:auto}
 
-/* 设置 */
 .set-row{display:flex;align-items:center;gap:12px;padding:13px 0;border-top:1px solid var(--line-2);width:100%;text-align:left}
 .set-row:first-child{border-top:none}
 .set-row .mb{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex:0 0 34px;background:#F4F6FA;color:var(--ink-2)}
@@ -269,9 +255,7 @@ main{padding:14px 16px calc(104px + env(safe-area-inset-bottom))}
 .set-row .chev{margin-left:auto}
 .note{font-size:12px;color:var(--ink-3);line-height:1.6;background:#F7F9FC;border:1px solid var(--line-2);border-radius:12px;padding:11px 12px;margin-top:12px}
 .note b{color:var(--ink-2)}
-.note code{background:#EDF1F6;padding:1px 5px;border-radius:5px;font-size:11.5px}
 
-/* Toast */
 #toast{
   position:fixed;z-index:120;top:calc(env(safe-area-inset-top) + 14px);left:50%;transform:translate(-50%,-16px);
   background:rgba(15,23,42,.94);color:#fff;font-size:14px;font-weight:600;
@@ -289,7 +273,7 @@ main{padding:14px 16px calc(104px + env(safe-area-inset-bottom))}
 <div id="app">
   <header class="topbar">
     <div class="tb-title">培训师工作台<small id="tb-date">—</small></div>
-    <span class="sync-pill" id="sync-pill"><i class="dot"></i><span id="sync-txt">未连接</span></span>
+    <span class="sync-pill" id="sync-pill"><i class="dot"></i><span id="sync-txt">同步中</span></span>
     <button class="icon-btn" id="btn-set" aria-label="设置">
       <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:19px;height:19px">
         <circle cx="12" cy="12" r="3"/>
@@ -300,7 +284,7 @@ main{padding:14px 16px calc(104px + env(safe-area-inset-bottom))}
 
   <div id="offline-bar" class="bar off hide">
     <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3l9 16H3z"/><path d="M12 9v5"/><path d="M12 17h.01"/></svg>
-    离线模式：数据暂存在本机，联网后自动同步
+    <span id="offline-txt">离线模式：已切到本机缓存，联网后自动同步</span>
   </div>
   <div id="backup-bar" class="bar tip hide">
     <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
@@ -314,6 +298,16 @@ main{padding:14px 16px calc(104px + env(safe-area-inset-bottom))}
     <section id="view-course" class="view hide"></section>
     <section id="view-pay" class="view hide"></section>
   </main>
+
+  <!-- 云端数据表绑定声明（六张表，ID 为字面量） -->
+  <div class="hide" aria-hidden="true">
+    <span data-sp-bindable="database" data-sp-database-id="NrhfjbMF1uWqT2irVzd6E0"></span>
+    <span data-sp-bindable="database" data-sp-database-id="GBjWz7FILOGUf6bifUumKw"></span>
+    <span data-sp-bindable="database" data-sp-database-id="nBbxGVftQP2J9PPlAjFram"></span>
+    <span data-sp-bindable="database" data-sp-database-id="BQgBPbfpJyzwaedzOp4qCd"></span>
+    <span data-sp-bindable="database" data-sp-database-id="EnTdoNOfsmBm8ZjMcQO7yE"></span>
+    <span data-sp-bindable="database" data-sp-database-id="2c5h8d15peeMhlrbvSxBpz"></span>
+  </div>
 
   <button class="fab" id="fab" aria-label="新建">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" style="width:26px;height:26px"><path d="M12 5v14M5 12h14"/></svg>
@@ -356,9 +350,8 @@ main{padding:14px 16px calc(104px + env(safe-area-inset-bottom))}
 <script>
 "use strict";
 /* ===================== 基础工具 ===================== */
-var OVERDUE_P0 = 30, DEFERS = [1, 3, 7, 30], NEAR_DAYS = 7, SEED_DEMO = true;
-var LS_DB = "wb_protrainer_db", LS_SYNC = "wb_protrainer_sync", LS_DRAFT = "wb_protrainer_draft_";
-var GIST_FILE = "protrainer_workbench.json";
+var OVERDUE_P0 = 30, DEFERS = [1, 3, 7, 30], NEAR_DAYS = 7;
+var LS_DB = "wb_protrainer_cache", LS_DRAFT = "wb_protrainer_draft_";
 
 function pad(n){ return String(n).padStart(2, "0"); }
 function ymd(d){ return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
@@ -380,6 +373,7 @@ function cnDate(s){
   return p.length === 3 ? (num(p[1]) + "月" + num(p[2]) + "日") : s;
 }
 function dueText(due){
+  if (!due) return "";
   var d = dd(due, TODAY);
   if (d < 0) return "逾期 " + (-d) + " 天";
   if (d === 0) return "今天到期";
@@ -387,8 +381,8 @@ function dueText(due){
   return d + " 天后";
 }
 function prioOf(due){
-  var d = dd(due, TODAY);
   if (!due) return 4;
+  var d = dd(due, TODAY);
   if (d <= -OVERDUE_P0) return 0;
   if (d < 0) return 1;
   if (d === 0) return 2;
@@ -396,7 +390,7 @@ function prioOf(due){
   return 4;
 }
 
-/* ===================== 数据层 ===================== */
+/* ===================== 枚举与内存库 ===================== */
 var ENUM = {
   custType: ["企业客户", "个人学员", "渠道合作"],
   custStatus: ["潜在客户", "洽谈中", "已签约", "已交付", "沉默"],
@@ -408,64 +402,318 @@ var ENUM = {
   followWay: ["电话", "微信", "面谈", "线上会议"]
 };
 var TABLES = ["customers", "tasks", "contracts", "payments", "courses", "follows"];
-var DB = { customers: [], tasks: [], contracts: [], payments: [], courses: [], follows: [], meta: { savedAt: "" } };
+var DB = { customers: [], tasks: [], contracts: [], payments: [], courses: [], follows: [] };
+var DBID = {
+  customers: "NrhfjbMF1uWqT2irVzd6E0",
+  tasks: "GBjWz7FILOGUf6bifUumKw",
+  contracts: "nBbxGVftQP2J9PPlAjFram",
+  payments: "BQgBPbfpJyzwaedzOp4qCd",
+  courses: "EnTdoNOfsmBm8ZjMcQO7yE",
+  follows: "2c5h8d15peeMhlrbvSxBpz"
+};
 
-function load(){
+/* ===================== 云端数据表读写（databaseId 全部字面量） ===================== */
+var db = (window.__SMART_PAGE__ && window.__SMART_PAGE__.database) ? window.__SMART_PAGE__.database : null;
+var CLOUD = !!db;
+
+var Q = {
+  customers: function(){ return db.query({ databaseId: "NrhfjbMF1uWqT2irVzd6E0", pageSize: 100 }); },
+  tasks:     function(){ return db.query({ databaseId: "GBjWz7FILOGUf6bifUumKw", pageSize: 100 }); },
+  contracts: function(){ return db.query({ databaseId: "nBbxGVftQP2J9PPlAjFram", pageSize: 100 }); },
+  payments:  function(){ return db.query({ databaseId: "BQgBPbfpJyzwaedzOp4qCd", pageSize: 100 }); },
+  courses:   function(){ return db.query({ databaseId: "EnTdoNOfsmBm8ZjMcQO7yE", pageSize: 100 }); },
+  follows:   function(){ return db.query({ databaseId: "2c5h8d15peeMhlrbvSxBpz", pageSize: 100 }); }
+};
+var ADD = {
+  customers: function(p){ return db.addRecord({ databaseId: "NrhfjbMF1uWqT2irVzd6E0", properties: p }); },
+  tasks:     function(p){ return db.addRecord({ databaseId: "GBjWz7FILOGUf6bifUumKw", properties: p }); },
+  contracts: function(p){ return db.addRecord({ databaseId: "nBbxGVftQP2J9PPlAjFram", properties: p }); },
+  payments:  function(p){ return db.addRecord({ databaseId: "BQgBPbfpJyzwaedzOp4qCd", properties: p }); },
+  courses:   function(p){ return db.addRecord({ databaseId: "EnTdoNOfsmBm8ZjMcQO7yE", properties: p }); },
+  follows:   function(p){ return db.addRecord({ databaseId: "2c5h8d15peeMhlrbvSxBpz", properties: p }); }
+};
+var UPD = {
+  customers: function(rid, p){ return db.updateRecord({ databaseId: "NrhfjbMF1uWqT2irVzd6E0", recordId: rid, properties: p }); },
+  tasks:     function(rid, p){ return db.updateRecord({ databaseId: "GBjWz7FILOGUf6bifUumKw", recordId: rid, properties: p }); },
+  contracts: function(rid, p){ return db.updateRecord({ databaseId: "nBbxGVftQP2J9PPlAjFram", recordId: rid, properties: p }); },
+  payments:  function(rid, p){ return db.updateRecord({ databaseId: "BQgBPbfpJyzwaedzOp4qCd", recordId: rid, properties: p }); },
+  courses:   function(rid, p){ return db.updateRecord({ databaseId: "EnTdoNOfsmBm8ZjMcQO7yE", recordId: rid, properties: p }); },
+  follows:   function(rid, p){ return db.updateRecord({ databaseId: "2c5h8d15peeMhlrbvSxBpz", recordId: rid, properties: p }); }
+};
+var DEL = {
+  customers: function(rid){ return db.deleteRecord({ databaseId: "NrhfjbMF1uWqT2irVzd6E0", recordId: rid }); },
+  tasks:     function(rid){ return db.deleteRecord({ databaseId: "GBjWz7FILOGUf6bifUumKw", recordId: rid }); },
+  contracts: function(rid){ return db.deleteRecord({ databaseId: "nBbxGVftQP2J9PPlAjFram", recordId: rid }); },
+  payments:  function(rid){ return db.deleteRecord({ databaseId: "BQgBPbfpJyzwaedzOp4qCd", recordId: rid }); },
+  courses:   function(rid){ return db.deleteRecord({ databaseId: "EnTdoNOfsmBm8ZjMcQO7yE", recordId: rid }); },
+  follows:   function(rid){ return db.deleteRecord({ databaseId: "2c5h8d15peeMhlrbvSxBpz", recordId: rid }); }
+};
+var GET = {
+  customers: function(rid){ return db.getRecord({ databaseId: "NrhfjbMF1uWqT2irVzd6E0", recordId: rid }); },
+  tasks:     function(rid){ return db.getRecord({ databaseId: "GBjWz7FILOGUf6bifUumKw", recordId: rid }); },
+  contracts: function(rid){ return db.getRecord({ databaseId: "nBbxGVftQP2J9PPlAjFram", recordId: rid }); },
+  payments:  function(rid){ return db.getRecord({ databaseId: "BQgBPbfpJyzwaedzOp4qCd", recordId: rid }); },
+  courses:   function(rid){ return db.getRecord({ databaseId: "EnTdoNOfsmBm8ZjMcQO7yE", recordId: rid }); },
+  follows:   function(rid){ return db.getRecord({ databaseId: "2c5h8d15peeMhlrbvSxBpz", recordId: rid }); }
+};
+
+/* 云端行 → 内存记录（字段名与表结构一致） */
+function sdate(v){ return (v == null || v === "") ? "" : String(v).slice(0, 10); }
+function rowCustomer(row){
+  return { _rid: row._id, id: row._id, name: row["客户名称"] || "", type: row["类型"] || "",
+    contact: row["联系人"] || "", status: row["状态"] || "", course: row["报名课程"] || "",
+    lastFollow: sdate(row["最近跟进"]), nextFollow: sdate(row["下次跟进"]), note: row["备注"] || "" };
+}
+function rowTask(row){
+  return { _rid: row._id, id: row._id, title: row["标题"] || "", type: row["类型"] || "自定义",
+    customer: row["客户"] || "", due: sdate(row["截止日"]), amount: num(row["金额"]),
+    status: row["状态"] || "待处理", defer: num(row["顺延次数"]), note: row["说明"] || "" };
+}
+function rowContract(row){
+  return { _rid: row._id, id: row._id, name: row["合同名称"] || "", customer: row["客户"] || "",
+    amount: num(row["合同金额"]), signDate: sdate(row["签约日期"]), status: row["状态"] || "履约中", note: row["备注"] || "" };
+}
+function rowPayment(row){
+  return { _rid: row._id, id: row._id, contract: row["合同"] || "", customer: row["客户"] || "",
+    period: row["期次"] || "", amount: num(row["应收金额"]), dueDate: sdate(row["应收日期"]),
+    status: row["状态"] || "未到期", paidDate: sdate(row["实收日期"]), defer: num(row["顺延次数"]) };
+}
+function rowCourse(row){
+  return { _rid: row._id, id: row._id, name: row["课程名称"] || "", status: row["状态"] || "招生中",
+    students: num(row["学员数"]), hours: num(row["课时数"]), fee: num(row["课酬"]),
+    startDate: sdate(row["开课日期"]), deliverDate: sdate(row["交付日期"]), note: row["备注"] || "" };
+}
+function rowFollow(row){
+  return { _rid: row._id, id: row._id, customer: row["客户"] || "", date: sdate(row["跟进日期"]),
+    way: row["方式"] || "微信", content: row["内容"] || "", next: row["下次计划"] || "" };
+}
+var ROW = { customers: rowCustomer, tasks: rowTask, contracts: rowContract,
+  payments: rowPayment, courses: rowCourse, follows: rowFollow };
+
+/* 内存记录 → 云端字段值 */
+var DATE_KEYS = {
+  customers: ["最近跟进", "下次跟进"], tasks: ["截止日"], contracts: ["签约日期"],
+  payments: ["应收日期", "实收日期"], courses: ["开课日期", "交付日期"], follows: ["跟进日期"]
+};
+var SEL_KEYS = {
+  customers: ["类型", "状态"], tasks: ["类型", "状态"], contracts: ["状态"],
+  payments: ["状态"], courses: ["状态"], follows: ["方式"]
+};
+function propsCustomer(o){
+  var properties = {};
+  properties["客户名称"] = { text: o.name || "" };
+  properties["类型"] = { select: o.type || "" };
+  properties["联系人"] = { text: o.contact || "" };
+  properties["状态"] = { select: o.status || "" };
+  properties["报名课程"] = { text: o.course || "" };
+  properties["最近跟进"] = { date: o.lastFollow || "" };
+  properties["下次跟进"] = { date: o.nextFollow || "" };
+  properties["备注"] = { text: o.note || "" };
+  return properties;
+}
+function propsTask(o){
+  var properties = {};
+  properties["标题"] = { text: o.title || "" };
+  properties["类型"] = { select: o.type || "自定义" };
+  properties["客户"] = { text: o.customer || "" };
+  properties["截止日"] = { date: o.due || "" };
+  properties["金额"] = { number: num(o.amount) };
+  properties["状态"] = { select: o.status || "待处理" };
+  properties["顺延次数"] = { number: num(o.defer) };
+  properties["说明"] = { text: o.note || "" };
+  return properties;
+}
+function propsContract(o){
+  var properties = {};
+  properties["合同名称"] = { text: o.name || "" };
+  properties["客户"] = { text: o.customer || "" };
+  properties["合同金额"] = { number: num(o.amount) };
+  properties["签约日期"] = { date: o.signDate || "" };
+  properties["状态"] = { select: o.status || "履约中" };
+  properties["备注"] = { text: o.note || "" };
+  return properties;
+}
+function propsPayment(o){
+  var properties = {};
+  properties["合同"] = { text: o.contract || "" };
+  properties["客户"] = { text: o.customer || "" };
+  properties["期次"] = { text: o.period || "" };
+  properties["应收金额"] = { number: num(o.amount) };
+  properties["应收日期"] = { date: o.dueDate || "" };
+  properties["状态"] = { select: o.status || "未到期" };
+  properties["实收日期"] = { date: o.paidDate || "" };
+  properties["顺延次数"] = { number: num(o.defer) };
+  return properties;
+}
+function propsCourse(o){
+  var properties = {};
+  properties["课程名称"] = { text: o.name || "" };
+  properties["状态"] = { select: o.status || "招生中" };
+  properties["学员数"] = { number: num(o.students) };
+  properties["课时数"] = { number: num(o.hours) };
+  properties["课酬"] = { number: num(o.fee) };
+  properties["开课日期"] = { date: o.startDate || "" };
+  properties["交付日期"] = { date: o.deliverDate || "" };
+  properties["备注"] = { text: o.note || "" };
+  return properties;
+}
+function propsFollow(o){
+  var properties = {};
+  properties["客户"] = { text: o.customer || "" };
+  properties["跟进日期"] = { date: o.date || "" };
+  properties["方式"] = { select: o.way || "微信" };
+  properties["内容"] = { text: o.content || "" };
+  properties["下次计划"] = { text: o.next || "" };
+  return properties;
+}
+var PROPS = { customers: propsCustomer, tasks: propsTask, contracts: propsContract,
+  payments: propsPayment, courses: propsCourse, follows: propsFollow };
+
+function toProps(table, o){
+  var p = PROPS[table](o);
+  (DATE_KEYS[table] || []).forEach(function(k){ if (!p[k] || !p[k].date) delete p[k]; });
+  (SEL_KEYS[table] || []).forEach(function(k){ if (!p[k] || !p[k].select) delete p[k]; });
+  return p;
+}
+
+/* ===================== 本地缓存与同步队列 ===================== */
+function cacheWrite(){
+  try { localStorage.setItem(LS_DB, JSON.stringify(DB)); } catch (e) {}
+}
+function cacheRead(){
   try {
     var raw = localStorage.getItem(LS_DB);
-    if (raw) {
-      var o = JSON.parse(raw);
-      TABLES.forEach(function(t){ DB[t] = Array.isArray(o[t]) ? o[t] : []; });
-      DB.meta = o.meta || { savedAt: "" };
-      return true;
-    }
-  } catch (e) {}
-  return false;
+    if (!raw) return false;
+    var o = JSON.parse(raw);
+    TABLES.forEach(function(t){ DB[t] = Array.isArray(o[t]) ? o[t] : []; });
+    return TABLES.some(function(t){ return DB[t].length; });
+  } catch (e) { return false; }
 }
-var dirty = false;
-function save(){
-  DB.meta.savedAt = new Date().toISOString();
-  try { localStorage.setItem(LS_DB, JSON.stringify(DB)); } catch (e) { toast("本地存储写入失败"); }
-  dirty = true;
-  scheduleSync();
+function cacheClear(){
+  try { localStorage.removeItem(LS_DB); } catch (e) {}
+  TABLES.forEach(function(t){ try { localStorage.removeItem(LS_DRAFT + t); } catch (e) {} });
 }
 function recCount(){ return TABLES.reduce(function(a, t){ return a + DB[t].length; }, 0); }
 
-/* ---------- 示例数据（全部虚构，含 1 条 P0 逾期） ---------- */
-function seed(){
-  var c1 = uid(), c2 = uid(), c3 = uid();
-  DB.customers = [
-    { id: c1, name: "示例客户·恒信科技", type: "企业客户", contact: "李经理", status: "已签约", course: "管理者的关键对话", lastFollow: shift(-9), nextFollow: shift(-2), note: "年框客户，第三期合作" },
-    { id: c2, name: "示例客户·明远制造", type: "企业客户", contact: "周总监", status: "洽谈中", course: "班组长现场管理", lastFollow: shift(-4), nextFollow: shift(1), note: "预算已批，走合同流程" },
-    { id: c3, name: "渠道伙伴·智联教育", type: "渠道合作", contact: "陈老师", status: "已交付", course: "TTT 内训师培养", lastFollow: shift(-21), nextFollow: shift(6), note: "转介绍来源，长期合作" }
-  ];
-  var k1 = uid();
-  DB.contracts = [
-    { id: k1, name: "关键对话·企业内训合同", customer: "示例客户·恒信科技", amount: 68000, signDate: shift(-46), status: "履约中", note: "分三期回款" }
-  ];
-  DB.payments = [
-    { id: uid(), contract: "关键对话·企业内训合同", customer: "示例客户·恒信科技", period: "首款 40%", amount: 27200, dueDate: shift(-38), status: "逾期", paidDate: "", defer: 0 },
-    { id: uid(), contract: "关键对话·企业内训合同", customer: "示例客户·恒信科技", period: "二期 40%", amount: 27200, dueDate: shift(4), status: "未到期", paidDate: "", defer: 0 },
-    { id: uid(), contract: "关键对话·企业内训合同", customer: "示例客户·恒信科技", period: "尾款 20%", amount: 13600, dueDate: shift(26), status: "未到期", paidDate: "", defer: 0 },
-    { id: uid(), contract: "TTT 内训师培养（示例）", customer: "渠道伙伴·智联教育", period: "全款", amount: 32000, dueDate: shift(-12), status: "已收款", paidDate: shift(-10), defer: 0 }
-  ];
-  DB.courses = [
-    { id: uid(), name: "管理者的关键对话（第 3 期）", status: "进行中", students: 42, hours: 12, fee: 68000, startDate: shift(-5), deliverDate: shift(3), note: "恒信科技·中层班" },
-    { id: uid(), name: "班组长现场管理", status: "招生中", students: 30, hours: 14, fee: 56000, startDate: shift(11), deliverDate: shift(14), note: "明远制造·待排期" },
-    { id: uid(), name: "TTT 内训师培养", status: "已结课", students: 26, hours: 18, fee: 32000, startDate: shift(-30), deliverDate: shift(-24), note: "渠道合作交付" }
-  ];
-  DB.tasks = [
-    { id: uid(), title: "催恒信科技首款回款", type: "回款", customer: "示例客户·恒信科技", due: shift(-6), amount: 27200, status: "待处理", defer: 0, note: "对接财务，已两次口头承诺" },
-    { id: uid(), title: "给明远制造发正式报价单", type: "跟进", customer: "示例客户·明远制造", due: TODAY, amount: 56000, status: "待处理", defer: 0, note: "" },
-    { id: uid(), title: "关键对话第 3 期结课作业批改", type: "交付", customer: "示例客户·恒信科技", due: shift(3), amount: 0, status: "待处理", defer: 0, note: "" },
-    { id: uid(), title: "更新课程体系 PPT", type: "自定义", customer: "", due: shift(20), amount: 0, status: "待处理", defer: 0, note: "" }
-  ];
-  DB.follows = [
-    { id: uid(), customer: "示例客户·恒信科技", date: shift(-9), way: "面谈", content: "确认第 3 期开课时间与人选", next: "催首款到账" },
-    { id: uid(), customer: "示例客户·恒信科技", date: shift(-24), way: "电话", content: "谈定合同金额与三期付款", next: "发合同初稿" },
-    { id: uid(), customer: "示例客户·明远制造", date: shift(-4), way: "微信", content: "周总监确认预算，要报价单", next: "发正式报价" }
-  ];
-  save();
+var OPS = [];
+function opAdd(table, o){ OPS.push({ k: "add", t: table, o: o }); DB[table].unshift(o); }
+function opUpd(table, o){ OPS.push({ k: "upd", t: table, o: o }); }
+function opDel(table, o){
+  OPS.push({ k: "del", t: table, o: o });
+  var i = DB[table].indexOf(o);
+  if (i >= 0) DB[table].splice(i, 1);
+}
+
+function runOps(){
+  var q = OPS.slice(); OPS = [];
+  var i = 0;
+  function next(){
+    if (i >= q.length) return Promise.resolve(true);
+    var op = q[i++], p;
+    if (op.k === "add") {
+      p = ADD[op.t](toProps(op.t, op.o)).then(function(res){
+        var rid = res && (res.id || res.recordId || (res.result && res.result.id));
+        if (rid) { op.o._rid = rid; op.o.id = rid; }
+        return true;
+      });
+    } else if (op.k === "upd") {
+      p = op.o._rid ? UPD[op.t](op.o._rid, toProps(op.t, op.o)) : ADD[op.t](toProps(op.t, op.o)).then(function(res){
+        var rid = res && (res.id || res.recordId || (res.result && res.result.id));
+        if (rid) { op.o._rid = rid; op.o.id = rid; }
+        return true;
+      });
+    } else {
+      p = op.o._rid ? DEL[op.t](op.o._rid) : Promise.resolve(true);
+    }
+    return p.then(next, function(){ OPS.unshift(op); return false; });
+  }
+  return next();
+}
+
+function setSync(state, text){
+  var p = document.getElementById("sync-pill");
+  p.className = "sync-pill " + state;
+  document.getElementById("sync-txt").textContent = text;
+  var bar = document.getElementById("offline-bar");
+  bar.classList.toggle("hide", state !== "off");
+  if (state === "off") {
+    document.getElementById("offline-txt").textContent = CLOUD
+      ? "云端暂时连不上：改动已存本机，联网后自动同步"
+      : "本地模式：数据存在这台设备，打开资料库里的页面即自动云端同步";
+  }
+}
+
+/* 统一提交：先落本地缓存 + 立即刷新 UI，再推云端 */
+function commit(msg){
+  cacheWrite();
+  render();
+  if (!CLOUD) { setSync("off", "本地模式"); if (msg) toast(msg); return; }
+  if (!navigator.onLine) { setSync("off", "离线模式"); if (msg) toast(msg + "（待联网同步）"); return; }
+  setSync("busy", "同步中");
+  var added = OPS.some(function(o){ return o.k === "add"; });
+  runOps().then(function(ok){
+    if (ok && added) return cloudLoad().then(function(){ return true; }, function(){ return true; });
+    return ok;
+  }).then(function(ok){
+    cacheWrite();
+    render();
+    if (ok) { setSync("ok", "已同步"); if (msg) toast(msg); }
+    else { setSync("off", "离线模式"); if (msg) toast(msg + "（待联网同步）"); }
+  });
+}
+
+/* 从云端拉取全部 */
+function cloudLoad(){
+  return Promise.all(TABLES.map(function(t){
+    return Q[t]().then(function(res){
+      var rows = (res && res.results) ? res.results : [];
+      DB[t] = rows.map(ROW[t]);
+    });
+  }));
+}
+
+/* ===================== 示例数据（全部虚构，含 1 条逾期项） ===================== */
+function demoData(){
+  return {
+    customers: [
+      { name: "示例客户·恒信科技", type: "企业客户", contact: "李经理", status: "已签约", course: "管理者的关键对话", lastFollow: shift(-9), nextFollow: shift(-2), note: "年框客户，第三期合作" },
+      { name: "示例客户·明远制造", type: "企业客户", contact: "周总监", status: "洽谈中", course: "班组长现场管理", lastFollow: shift(-4), nextFollow: shift(1), note: "预算已批，走合同流程" },
+      { name: "渠道伙伴·智联教育", type: "渠道合作", contact: "陈老师", status: "已交付", course: "TTT 内训师培养", lastFollow: shift(-21), nextFollow: shift(6), note: "转介绍来源，长期合作" }
+    ],
+    contracts: [
+      { name: "关键对话·企业内训合同", customer: "示例客户·恒信科技", amount: 68000, signDate: shift(-46), status: "履约中", note: "分三期回款" },
+      { name: "TTT 内训师培养·渠道合同", customer: "渠道伙伴·智联教育", amount: 32000, signDate: shift(-33), status: "已完成", note: "一次性全款" }
+    ],
+    payments: [
+      { contract: "关键对话·企业内训合同", customer: "示例客户·恒信科技", period: "首款 40%", amount: 27200, dueDate: shift(-38), status: "逾期", paidDate: "", defer: 0 },
+      { contract: "关键对话·企业内训合同", customer: "示例客户·恒信科技", period: "二期 40%", amount: 27200, dueDate: shift(4), status: "未到期", paidDate: "", defer: 0 },
+      { contract: "关键对话·企业内训合同", customer: "示例客户·恒信科技", period: "尾款 20%", amount: 13600, dueDate: shift(26), status: "未到期", paidDate: "", defer: 0 },
+      { contract: "TTT 内训师培养·渠道合同", customer: "渠道伙伴·智联教育", period: "全款", amount: 32000, dueDate: shift(-12), status: "已收款", paidDate: shift(-10), defer: 0 }
+    ],
+    courses: [
+      { name: "管理者的关键对话（第 3 期）", status: "进行中", students: 42, hours: 12, fee: 68000, startDate: shift(-5), deliverDate: shift(3), note: "恒信科技·中层班" },
+      { name: "班组长现场管理", status: "招生中", students: 30, hours: 14, fee: 56000, startDate: shift(11), deliverDate: shift(14), note: "明远制造·待排期" },
+      { name: "TTT 内训师培养", status: "已结课", students: 26, hours: 18, fee: 32000, startDate: shift(-30), deliverDate: shift(-24), note: "渠道合作交付" }
+    ],
+    tasks: [
+      { title: "催恒信科技首款回款", type: "回款", customer: "示例客户·恒信科技", due: shift(-6), amount: 27200, status: "待处理", defer: 0, note: "对接财务，已两次口头承诺" },
+      { title: "给明远制造发正式报价单", type: "跟进", customer: "示例客户·明远制造", due: TODAY, amount: 56000, status: "待处理", defer: 0, note: "" },
+      { title: "关键对话第 3 期结课作业批改", type: "交付", customer: "示例客户·恒信科技", due: shift(3), amount: 0, status: "待处理", defer: 0, note: "" },
+      { title: "更新课程体系 PPT", type: "自定义", customer: "", due: shift(20), amount: 0, status: "待处理", defer: 0, note: "" }
+    ],
+    follows: [
+      { customer: "示例客户·恒信科技", date: shift(-9), way: "面谈", content: "确认第 3 期开课时间与人选", next: "催首款到账" },
+      { customer: "示例客户·恒信科技", date: shift(-24), way: "电话", content: "谈定合同金额与三期付款", next: "发合同初稿" },
+      { customer: "示例客户·明远制造", date: shift(-4), way: "微信", content: "周总监确认预算，要报价单", next: "发正式报价" }
+    ]
+  };
+}
+function loadDemo(toCloud){
+  var d = demoData();
+  TABLES.forEach(function(t){
+    DB[t] = (d[t] || []).map(function(o){ o.id = uid(); return o; });
+    if (toCloud) DB[t].forEach(function(o){ OPS.push({ k: "add", t: t, o: o }); });
+  });
 }
 
 /* ===================== 派生计算 ===================== */
@@ -507,7 +755,7 @@ function collectToday(){
     var pr = prioOf(p.dueDate);
     if (pr === 4) return;
     list.push({
-      kind: "pay", id: p.id, pr: pr, due: p.dueDate,
+      kind: "pay", table: "payments", id: p.id, pr: pr, due: p.dueDate,
       title: "回款 · " + p.customer + " " + p.period,
       sub: money(p.amount) + " · " + (p.contract || "—"),
       tags: [payState(p) === "逾期" ? '<span class="tag t-red">逾期</span>' : '<span class="tag t-blue">应收</span>']
@@ -518,7 +766,7 @@ function collectToday(){
     var pr = prioOf(t.due);
     if (pr === 4) return;
     list.push({
-      kind: "task", id: t.id, pr: pr, due: t.due,
+      kind: "task", table: "tasks", id: t.id, pr: pr, due: t.due,
       title: t.type + " · " + t.title,
       sub: (t.customer || "无关联客户") + " · " + dueText(t.due) + (num(t.defer) ? " · 已顺延" + t.defer + "次" : ""),
       tags: ['<span class="tag t-gray">' + esc(t.type) + '</span>']
@@ -529,7 +777,7 @@ function collectToday(){
     var pr = prioOf(c.deliverDate);
     if (pr === 4) return;
     list.push({
-      kind: "course", id: c.id, pr: pr, due: c.deliverDate,
+      kind: "course", table: "courses", id: c.id, pr: pr, due: c.deliverDate,
       title: "交付 · " + c.name,
       sub: "学员 " + num(c.students) + " 人 · " + num(c.hours) + " 课时 · " + dueText(c.deliverDate),
       tags: ['<span class="tag t-teal">' + esc(c.status) + '</span>']
@@ -538,11 +786,18 @@ function collectToday(){
   list.sort(function(a, b){ return a.pr - b.pr || dd(a.due, b.due) - dd(b.due, b.due); });
   return list;
 }
+function byId(table, id){ return DB[table].filter(function(o){ return o.id === id; })[0]; }
 
 /* ===================== 视图渲染 ===================== */
 var view = "home";
 var ui = { projTab: "contract", contractFilter: "全部", courseFilter: "全部", payFilter: "全部", q: "", showAll: false };
 
+function markBinds(scope){
+  Array.prototype.forEach.call((scope || document).querySelectorAll("[data-bd]"), function(el){
+    el.setAttribute("data-sp-bindable", "database");
+    el.setAttribute("data-sp-database-id", DBID[el.getAttribute("data-bd")] || "");
+  });
+}
 function setView(v){
   view = v;
   ["home", "project", "course", "pay"].forEach(function(k){
@@ -554,7 +809,6 @@ function setView(v){
   window.scrollTo(0, 0);
   render();
 }
-
 function render(){
   if (view === "home") renderHome();
   else if (view === "project") renderProject();
@@ -573,11 +827,11 @@ function renderHome(){
   var show = ui.showAll ? items : items.slice(0, 10);
   var h = "";
 
-  h += '<div class="sec-title">今天要处理<span class="cnt">' + items.length + '</span>' +
+  h += '<div class="sec-title">今天要处理<span class="cnt" data-bd="tasks">' + items.length + '</span>' +
        (overdue ? '<span class="warn">' + overdue + ' 项逾期</span>' : '') + '</div>';
   h += '<div class="card today">';
   if (!items.length) {
-    h += '<div class="empty"><div class="big">✅ 今天没有待办，干得漂亮！</div><div class="sub">点右下角 + 添加你的第一个任务</div></div>';
+    h += '<div class="empty"><div class="big">今天没有待办，干得漂亮！</div><div class="sub">点右下角 + 添加你的第一个任务</div></div>';
   } else {
     h += show.map(function(i){
       var act = "";
@@ -585,8 +839,8 @@ function renderHome(){
       else if (i.kind === "task") act = '<button class="mini pri" data-act="task-done" data-id="' + i.id + '">标完成</button><button class="mini" data-act="task-defer" data-id="' + i.id + '">顺延</button>';
       else act = '<button class="mini pri" data-act="course-done" data-id="' + i.id + '">标已结课</button>';
       return '<div class="todo-item"><span class="pdot p' + i.pr + '"></span><div class="todo-main">' +
-        '<div class="todo-t">' + esc(i.title) + ' ' + i.tags.join(" ") + '</div>' +
-        '<div class="todo-s"><span>' + esc(i.sub) + '</span><span>·</span><span>' + cnDate(i.due) + ' ' + dueText(i.due) + '</span></div>' +
+        '<div class="todo-t" data-bd="' + i.table + '">' + esc(i.title) + ' ' + i.tags.join(" ") + '</div>' +
+        '<div class="todo-s" data-bd="' + i.table + '"><span>' + esc(i.sub) + '</span><span>·</span><span>' + cnDate(i.due) + ' ' + dueText(i.due) + '</span></div>' +
         '<div class="todo-acts">' + act + '</div></div></div>';
     }).join("");
     if (items.length > 10) {
@@ -597,12 +851,12 @@ function renderHome(){
   h += '</div>';
 
   h += '<div class="sec-title">经营指标</div><div class="kpi-grid">';
-  h += kpi("本月课酬收入", money(monthReceived()), "本月已到账回款", "g", '<path d="M12 2v20M17 6H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>', "green");
-  h += kpi("待收款", money(pendingAmount()), '其中逾期 <span class="r">' + money(overdueAmount()) + '</span>', "", '<path d="M3 7h18v12H3z"/><path d="M16 13h2"/>', "blue");
-  h += kpi("本月课时数", num(monthHours()) + " 课时", "进行中课程合计", "", '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>', "teal");
+  h += kpi("本月课酬收入", money(monthReceived()), "本月已到账回款", '<path d="M12 2v20M17 6H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>', "green", "payments");
+  h += kpi("待收款", money(pendingAmount()), '其中逾期 <span class="r">' + money(overdueAmount()) + '</span>', '<path d="M3 7h18v12H3z"/><path d="M16 13h2"/>', "blue", "payments");
+  h += kpi("本月课时数", num(monthHours()) + " 课时", "进行中课程合计", '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>', "teal", "courses");
   var oc = openContracts();
   var ocAmt = oc.reduce(function(a, c){ return a + num(c.amount); }, 0);
-  h += kpi("活跃客户", activeCustomers() + " 家", "在途合同 " + oc.length + " 份 · " + money(ocAmt), "", '<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.9"/>', "primary");
+  h += kpi("活跃客户", activeCustomers() + " 家", "在途合同 " + oc.length + " 份 · " + money(ocAmt), '<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.9"/>', "primary", "customers");
   h += '</div>';
 
   h += '<div class="sec-title">最近跟进</div>';
@@ -610,17 +864,19 @@ function renderHome(){
   h += '<div class="card">';
   if (!fs.length) h += '<div class="empty">还没有跟进记录，点右下角 + 记一笔</div>';
   else h += fs.map(function(f){
-    return '<div class="row"><div class="rmain"><div class="rt">' + esc(f.customer) +
+    return '<div class="row"><div class="rmain"><div class="rt" data-bd="follows">' + esc(f.customer) +
       ' <span class="tag t-gray">' + esc(f.way) + '</span></div>' +
-      '<div class="rs"><span>' + cnDate(f.date) + '</span><span>' + esc(f.content) + '</span></div></div>' +
+      '<div class="rs" data-bd="follows"><span>' + cnDate(f.date) + '</span><span>' + esc(f.content) + '</span></div></div>' +
       '<span class="chev">' + svg("chev") + '</span></div>';
   }).join("");
   h += '</div>';
 
-  document.getElementById("view-home").innerHTML = h;
+  var el = document.getElementById("view-home");
+  el.innerHTML = h;
+  markBinds(el);
 }
 
-function kpi(lab, val, sub, cls, path, tone){
+function kpi(lab, val, sub, path, tone, table){
   var map = {
     green: ["var(--green-50)", "var(--green)"], blue: ["var(--blue-50)", "var(--primary-600)"],
     teal: ["var(--teal-50)", "var(--teal)"], primary: ["var(--primary-50)", "var(--primary)"]
@@ -628,15 +884,16 @@ function kpi(lab, val, sub, cls, path, tone){
   var t = map[tone] || map.blue;
   return '<div class="kpi"><div class="badge" style="background:' + t[0] + ';color:' + t[1] + '">' +
     '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + path + '</svg></div>' +
-    '<div class="lab">' + lab + '</div><div class="val num">' + val + '</div>' +
-    '<div class="sub">' + sub + '</div></div>';
+    '<div class="lab">' + lab + '</div><div class="val num" data-bd="' + table + '">' + val + '</div>' +
+    '<div class="sub" data-bd="' + table + '">' + sub + '</div></div>';
 }
 function svg(n){
   var p = {
     chev: '<path d="M9 6l6 6-6 6"/>',
     edit: '<path d="M4 20h4L19 9l-4-4L4 16v4z"/>',
     del: '<path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/>',
-    plus: '<path d="M12 5v14M5 12h14"/>'
+    plus: '<path d="M12 5v14M5 12h14"/>',
+    cloud: '<path d="M18 10h-1.3A7 7 0 104 14.9"/><path d="M8 17l4-4 4 4"/><path d="M12 13v9"/>'
   }[n] || "";
   return '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>';
 }
@@ -654,12 +911,12 @@ function renderProject(){
       var paid = contractPaid(c.name), rate = num(c.amount) ? Math.min(100, Math.round(paid / num(c.amount) * 100)) : 0;
       var st = c.status === "履约中" ? "t-blue" : (c.status === "已完成" ? "t-green" : "t-gray");
       h += '<div class="card"><div class="row" data-act="contract-open" data-id="' + c.id + '" style="padding-top:0">' +
-        '<div class="rmain"><div class="rt">' + esc(c.name) + ' <span class="tag ' + st + '">' + esc(c.status) + '</span></div>' +
-        '<div class="rs"><span>' + esc(c.customer || "—") + '</span><span>签约 ' + cnDate(c.signDate) + '</span></div></div>' +
-        '<div class="rr"><div class="rv num">' + money(c.amount) + '</div><div class="rl">已收 ' + money(paid) + '</div></div>' +
+        '<div class="rmain"><div class="rt" data-bd="contracts">' + esc(c.name) + ' <span class="tag ' + st + '">' + esc(c.status) + '</span></div>' +
+        '<div class="rs" data-bd="contracts"><span>' + esc(c.customer || "—") + '</span><span>签约 ' + cnDate(c.signDate) + '</span></div></div>' +
+        '<div class="rr"><div class="rv num" data-bd="contracts">' + money(c.amount) + '</div><div class="rl" data-bd="payments">已收 ' + money(paid) + '</div></div>' +
         '<span class="chev">' + svg("chev") + '</span></div>' +
         '<div class="pbar"><i style="width:' + rate + '%"></i></div>' +
-        '<div class="pline"><span>回款进度 ' + rate + '%</span><span>待收 ' + money(num(c.amount) - paid) + '</span></div></div>';
+        '<div class="pline"><span data-bd="payments">回款进度 ' + rate + '%</span><span data-bd="payments">待收 ' + money(num(c.amount) - paid) + '</span></div></div>';
     });
   } else {
     h += '<input class="search" id="q" placeholder="搜索客户 / 联系人" value="' + esc(ui.q) + '">';
@@ -671,18 +928,24 @@ function renderProject(){
       var overdueFollow = c.nextFollow && dd(c.nextFollow, TODAY) < 0;
       var st = { "潜在客户": "t-gray", "洽谈中": "t-amber", "已签约": "t-blue", "已交付": "t-green", "沉默": "t-gray" }[c.status] || "t-gray";
       h += '<div class="card"><div class="row" data-act="cust-open" data-id="' + c.id + '" style="padding-top:0">' +
-        '<div class="rmain"><div class="rt">' + esc(c.name) + ' <span class="tag ' + st + '">' + esc(c.status) + '</span>' +
+        '<div class="rmain"><div class="rt" data-bd="customers">' + esc(c.name) + ' <span class="tag ' + st + '">' + esc(c.status) + '</span>' +
         '<span class="tag t-gray">' + esc(c.type) + '</span></div>' +
-        '<div class="rs"><span>' + esc(c.contact || "—") + '</span><span>' + esc(c.course || "未定课程") + '</span></div>' +
-        '<div class="rs"><span>最近跟进 ' + cnDate(c.lastFollow) + '</span>' +
+        '<div class="rs" data-bd="customers"><span>' + esc(c.contact || "—") + '</span><span>' + esc(c.course || "未定课程") + '</span></div>' +
+        '<div class="rs" data-bd="customers"><span>最近跟进 ' + cnDate(c.lastFollow) + '</span>' +
         '<span' + (overdueFollow ? ' style="color:var(--red);font-weight:700"' : '') + '>下次跟进 ' + cnDate(c.nextFollow) +
         (overdueFollow ? "（已逾期）" : "") + '</span></div></div>' +
         '<span class="chev">' + svg("chev") + '</span></div></div>';
     });
   }
-  document.getElementById("view-project").innerHTML = h;
+  var el = document.getElementById("view-project");
+  el.innerHTML = h;
+  markBinds(el);
   var q = document.getElementById("q");
-  if (q) q.addEventListener("input", function(){ ui.q = q.value; renderProject(); var el = document.getElementById("q"); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); } });
+  if (q) q.addEventListener("input", function(){
+    ui.q = q.value; renderProject();
+    var el2 = document.getElementById("q");
+    if (el2) { el2.focus(); el2.setSelectionRange(el2.value.length, el2.value.length); }
+  });
 }
 
 function renderCourse(){
@@ -693,28 +956,30 @@ function renderCourse(){
   var monthCnt = DB.courses.filter(function(c){ return String(c.deliverDate || "").slice(0, 7) === m; }).length;
   var totalStu = DB.courses.reduce(function(a, c){ return a + num(c.students); }, 0);
   h += '<div class="sum3" style="margin-bottom:12px">' +
-    '<div class="sum"><div class="lab">本月交付</div><div class="val num">' + monthCnt + '</div></div>' +
-    '<div class="sum"><div class="lab">累计学员</div><div class="val num">' + totalStu + '</div></div>' +
-    '<div class="sum green"><div class="lab">课酬合计</div><div class="val num">' + money(DB.courses.reduce(function(a, c){ return a + num(c.fee); }, 0)) + '</div></div></div>';
+    '<div class="sum"><div class="lab">本月交付</div><div class="val num" data-bd="courses">' + monthCnt + '</div></div>' +
+    '<div class="sum"><div class="lab">累计学员</div><div class="val num" data-bd="courses">' + totalStu + '</div></div>' +
+    '<div class="sum green"><div class="lab">课酬合计</div><div class="val num" data-bd="courses">' + money(DB.courses.reduce(function(a, c){ return a + num(c.fee); }, 0)) + '</div></div></div>';
   var cs = DB.courses.filter(function(c){ return ui.courseFilter === "全部" || c.status === ui.courseFilter; });
   if (!cs.length) h += '<div class="card"><div class="empty">还没有课程，点右下角 + 新建课程</div></div>';
   cs.forEach(function(c){
     var st = { "招生中": "t-amber", "进行中": "t-blue", "已结课": "t-green" }[c.status] || "t-gray";
     h += '<div class="card"><div class="row" data-act="course-open" data-id="' + c.id + '" style="padding-top:0">' +
-      '<div class="rmain"><div class="rt">' + esc(c.name) + ' <span class="tag ' + st + '">' + esc(c.status) + '</span></div>' +
-      '<div class="rs"><span>开课 ' + cnDate(c.startDate) + '</span><span>交付 ' + cnDate(c.deliverDate) + '</span></div>' +
-      '<div class="rs"><span>学员 ' + num(c.students) + ' 人</span><span>' + num(c.hours) + ' 课时</span></div></div>' +
-      '<div class="rr"><div class="rv num">' + money(c.fee) + '</div><div class="rl">课酬</div></div>' +
+      '<div class="rmain"><div class="rt" data-bd="courses">' + esc(c.name) + ' <span class="tag ' + st + '">' + esc(c.status) + '</span></div>' +
+      '<div class="rs" data-bd="courses"><span>开课 ' + cnDate(c.startDate) + '</span><span>交付 ' + cnDate(c.deliverDate) + '</span></div>' +
+      '<div class="rs" data-bd="courses"><span>学员 ' + num(c.students) + ' 人</span><span>' + num(c.hours) + ' 课时</span></div></div>' +
+      '<div class="rr"><div class="rv num" data-bd="courses">' + money(c.fee) + '</div><div class="rl">课酬</div></div>' +
       '<span class="chev">' + svg("chev") + '</span></div></div>';
   });
-  document.getElementById("view-course").innerHTML = h;
+  var el = document.getElementById("view-course");
+  el.innerHTML = h;
+  markBinds(el);
 }
 
 function renderPay(){
   var h = '<div class="sum3">' +
-    '<div class="sum"><div class="lab">待收合计</div><div class="val num">' + money(pendingAmount()) + '</div></div>' +
-    '<div class="sum red"><div class="lab">逾期未收</div><div class="val num">' + money(overdueAmount()) + '</div></div>' +
-    '<div class="sum green"><div class="lab">本月已收</div><div class="val num">' + money(monthReceived()) + '</div></div></div>';
+    '<div class="sum"><div class="lab">待收合计</div><div class="val num" data-bd="payments">' + money(pendingAmount()) + '</div></div>' +
+    '<div class="sum red"><div class="lab">逾期未收</div><div class="val num" data-bd="payments">' + money(overdueAmount()) + '</div></div>' +
+    '<div class="sum green"><div class="lab">本月已收</div><div class="val num" data-bd="payments">' + money(monthReceived()) + '</div></div></div>';
   h += '<div class="chips" style="padding-top:14px">' + ["全部", "未到期", "已收款", "逾期"].map(function(s){
     return '<button class="chip ' + (ui.payFilter === s ? "on" : "") + '" data-pfilter="' + s + '">' + s + '</button>';
   }).join("") + '</div>';
@@ -729,15 +994,17 @@ function renderPay(){
       : '<button class="mini pri" data-act="pay-done" data-id="' + p.id + '">标已收款</button><button class="mini" data-act="pay-defer" data-id="' + p.id + '">顺延</button>';
     h += '<div class="card"><div class="row" style="padding-top:0;display:block">' +
       '<div style="display:flex;align-items:flex-start;gap:10px">' +
-      '<div style="flex:1;min-width:0"><div class="rt">' + esc(p.period || "回款") + ' <span class="tag ' + tg + '">' + st + '</span></div>' +
-      '<div class="rs"><span>' + esc(p.customer || "—") + '</span><span>' + esc(p.contract || "") + '</span></div>' +
-      '<div class="rs"><span>应收 ' + cnDate(p.dueDate) + '</span><span>' + dueText(p.dueDate) + '</span>' +
+      '<div style="flex:1;min-width:0"><div class="rt" data-bd="payments">' + esc(p.period || "回款") + ' <span class="tag ' + tg + '">' + st + '</span></div>' +
+      '<div class="rs" data-bd="payments"><span>' + esc(p.customer || "—") + '</span><span>' + esc(p.contract || "") + '</span></div>' +
+      '<div class="rs" data-bd="payments"><span>应收 ' + cnDate(p.dueDate) + '</span><span>' + dueText(p.dueDate) + '</span>' +
       (p.status === "已收款" ? '<span>实收 ' + cnDate(p.paidDate) + '</span>' : '') +
       (num(p.defer) ? '<span style="color:var(--amber);font-weight:700">已顺延' + p.defer + '次</span>' : '') + '</div></div>' +
-      '<div class="rr"><div class="rv num" style="' + (st === "逾期" ? "color:var(--red)" : "") + '">' + money(p.amount) + '</div></div></div>' +
+      '<div class="rr"><div class="rv num" data-bd="payments" style="' + (st === "逾期" ? "color:var(--red)" : "") + '">' + money(p.amount) + '</div></div></div>' +
       '<div class="todo-acts">' + act + '</div></div></div>';
   });
-  document.getElementById("view-pay").innerHTML = h;
+  var el = document.getElementById("view-pay");
+  el.innerHTML = h;
+  markBinds(el);
 }
 
 /* ===================== 弹层与表单 ===================== */
@@ -761,14 +1028,12 @@ function toast(msg){
   clearTimeout(toastTimer);
   toastTimer = setTimeout(function(){ t.classList.remove("on"); }, 1900);
 }
-
 function confirmSheet(title, msg, okText, onOk){
   openSheet(title, '<div style="font-size:15px;line-height:1.7;color:var(--ink-2)">' + msg + '</div>',
     '<button class="btn" data-act="cancel">取消</button><button class="btn dgr" id="cf-ok">' + okText + '</button>');
   document.getElementById("cf-ok").onclick = function(){ closeSheet(); onOk(); };
 }
 
-/* 表单定义 */
 var FORMS = {
   task: { title: "新建待办", table: "tasks", fields: [
     { k: "title", l: "标题", t: "text", req: true, ph: "例如：催首款 / 发报价单" },
@@ -823,18 +1088,14 @@ var FORMS = {
     { k: "next", l: "下次计划", t: "text" }
   ]}
 };
-
 function custOptions(){ return DB.customers.map(function(c){ return c.name; }); }
 function contractOptions(){ return DB.contracts.map(function(c){ return c.name; }); }
 
-var curForm = null;
 function openForm(key, rec){
   var f = FORMS[key];
   if (!f) return;
-  curForm = { key: key, rec: rec || null };
   var vals = rec ? JSON.parse(JSON.stringify(rec)) : {};
   f.fields.forEach(function(fd){ if (vals[fd.k] === undefined && fd.def !== undefined) vals[fd.k] = fd.def; });
-
   var draft = null;
   if (!rec) { try { draft = JSON.parse(localStorage.getItem(LS_DRAFT + key) || "null"); } catch (e) {} }
   if (draft) vals = Object.assign(vals, draft);
@@ -847,13 +1108,11 @@ function openForm(key, rec){
         return '<option' + (String(v) === o ? " selected" : "") + '>' + esc(o) + '</option>';
       }).join("") + '</select>';
     } else if (fd.t === "cust") {
-      var os = custOptions();
       inner = '<input list="dl-cust" data-fk="' + fd.k + '" value="' + esc(v) + '" placeholder="选择或手填">' +
-        '<datalist id="dl-cust">' + os.map(function(o){ return '<option value="' + esc(o) + '">'; }).join("") + '</datalist>';
+        '<datalist id="dl-cust">' + custOptions().map(function(o){ return '<option value="' + esc(o) + '">'; }).join("") + '</datalist>';
     } else if (fd.t === "contract") {
-      var oc = contractOptions();
       inner = '<input list="dl-ct" data-fk="' + fd.k + '" value="' + esc(v) + '" placeholder="选择或手填">' +
-        '<datalist id="dl-ct">' + oc.map(function(o){ return '<option value="' + esc(o) + '">'; }).join("") + '</datalist>';
+        '<datalist id="dl-ct">' + contractOptions().map(function(o){ return '<option value="' + esc(o) + '">'; }).join("") + '</datalist>';
     } else if (fd.t === "textarea") {
       inner = '<textarea data-fk="' + fd.k + '" placeholder="' + esc(fd.ph || "") + '">' + esc(v) + '</textarea>';
     } else {
@@ -882,8 +1141,7 @@ function openForm(key, rec){
   });
 
   document.getElementById("f-ok").onclick = function(){
-    var out = {};
-    var ok = true;
+    var out = {}, ok = true;
     Array.prototype.forEach.call(shBody.querySelectorAll("[data-fk]"), function(el){
       out[el.getAttribute("data-fk")] = el.value;
     });
@@ -892,38 +1150,34 @@ function openForm(key, rec){
       if (fd.t === "number") out[fd.k] = num(out[fd.k]);
     });
     if (!ok) return;
-    var tb = DB[f.table];
     if (rec) {
-      var i = tb.findIndex(function(r){ return r.id === rec.id; });
-      if (i >= 0) tb[i] = Object.assign({}, tb[i], out);
+      Object.assign(rec, out);
+      opUpd(f.table, rec);
     } else {
       out.id = uid();
       if (f.table === "tasks") { out.status = "待处理"; out.defer = 0; }
       if (f.table === "payments") { out.defer = 0; if (out.status === "已收款" && !out.paidDate) out.paidDate = TODAY; }
-      tb.unshift(out);
+      opAdd(f.table, out);
     }
     if (!rec) localStorage.removeItem(LS_DRAFT + key);
-    // 联动：跟进后刷新客户最近跟进
     if (f.table === "follows" && out.customer) {
-      var c = DB.customers.find(function(x){ return x.name === out.customer; });
-      if (c) { c.lastFollow = out.date; if (out.next) c.nextFollow = ""; }
+      var c = DB.customers.filter(function(x){ return x.name === out.customer; })[0];
+      if (c) { c.lastFollow = out.date; if (out.next) { c.nextFollow = ""; opUpd("customers", c); } }
     }
-    save(); closeSheet(); render(); toast(rec ? "已保存" : "已添加");
+    closeSheet();
+    commit(rec ? "已保存" : "已添加");
   };
   if (rec) {
     document.getElementById("f-del").onclick = function(){
       closeSheet();
       confirmSheet("删除这条记录？", "删除后无法恢复。", "确认删除", function(){
-        var tb = DB[f.table];
-        var i = tb.findIndex(function(r){ return r.id === rec.id; });
-        if (i >= 0) tb.splice(i, 1);
-        save(); render(); toast("已删除");
+        opDel(f.table, rec);
+        commit("已删除");
       });
     };
   }
 }
 
-/* FAB 菜单 */
 var MENU = [
   { k: "task", t: "新建待办", s: "跟进 / 回款 / 交付任务", c: ["var(--blue-50)", "var(--primary)"], i: '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>' },
   { k: "customer", t: "新建客户", s: "企业 / 个人 / 渠道", c: ["var(--teal-50)", "var(--teal)"], i: '<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>' },
@@ -943,28 +1197,28 @@ document.getElementById("fab").addEventListener("click", function(){
   openSheet("新建", body, "");
 });
 
-/* 详情 */
+/* ===================== 详情 ===================== */
 function openCustomer(id){
-  var c = DB.customers.find(function(x){ return x.id === id; });
+  var c = byId("customers", id);
   if (!c) return;
   var fs = DB.follows.filter(function(f){ return f.customer === c.name; }).sort(function(a, b){ return dd(b.date, a.date); });
   var ks = DB.contracts.filter(function(x){ return x.customer === c.name; });
   var ts = DB.tasks.filter(function(t){ return t.customer === c.name && t.status !== "已完成"; });
-  var b = '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">' +
+  var b = '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px" data-bd="customers">' +
     '<span class="tag t-blue">' + esc(c.status) + '</span><span class="tag t-gray">' + esc(c.type) + '</span>' +
     (c.contact ? '<span class="tag t-gray">' + esc(c.contact) + '</span>' : "") + '</div>';
   b += '<div class="sum3" style="margin-bottom:16px">' +
-    '<div class="sum"><div class="lab">在途合同</div><div class="val num">' + ks.length + '</div></div>' +
-    '<div class="sum"><div class="lab">合同金额</div><div class="val num">' + money(ks.reduce(function(a, x){ return a + num(x.amount); }, 0)) + '</div></div>' +
-    '<div class="sum"><div class="lab">未办待办</div><div class="val num">' + ts.length + '</div></div></div>';
+    '<div class="sum"><div class="lab">在途合同</div><div class="val num" data-bd="contracts">' + ks.length + '</div></div>' +
+    '<div class="sum"><div class="lab">合同金额</div><div class="val num" data-bd="contracts">' + money(ks.reduce(function(a, x){ return a + num(x.amount); }, 0)) + '</div></div>' +
+    '<div class="sum"><div class="lab">未办待办</div><div class="val num" data-bd="tasks">' + ts.length + '</div></div></div>';
   b += '<div class="sec-title" style="margin-top:0">基本信息</div>';
-  b += '<div class="note" style="background:#fff">' +
+  b += '<div class="note" style="background:#fff" data-bd="customers">' +
     '报名课程：<b>' + esc(c.course || "—") + '</b><br>最近跟进：<b>' + cnDate(c.lastFollow) + '</b>　下次跟进：<b>' + cnDate(c.nextFollow) + '</b>' +
     (c.note ? '<br>备注：<b>' + esc(c.note) + '</b>' : "") + '</div>';
-  b += '<div class="sec-title">跟进时间线<span class="cnt">' + fs.length + '</span></div>';
+  b += '<div class="sec-title">跟进时间线<span class="cnt" data-bd="follows">' + fs.length + '</span></div>';
   if (!fs.length) b += '<div class="empty">还没有跟进记录</div>';
   else b += '<div class="tl">' + fs.map(function(f){
-    return '<div class="node"><div class="nd">' + cnDate(f.date) + ' · ' + esc(f.way) + '</div>' +
+    return '<div class="node" data-bd="follows"><div class="nd">' + cnDate(f.date) + ' · ' + esc(f.way) + '</div>' +
       '<div class="nc">' + esc(f.content) + '</div>' +
       (f.next ? '<div class="np">下次：' + esc(f.next) + '</div>' : "") + '</div>';
   }).join("") + '</div>';
@@ -972,51 +1226,54 @@ function openCustomer(id){
     b += '<div class="sec-title">关联合同</div>';
     ks.forEach(function(x){
       var paid = contractPaid(x.name), rate = num(x.amount) ? Math.min(100, Math.round(paid / num(x.amount) * 100)) : 0;
-      b += '<div class="card" style="margin-bottom:10px"><div class="rt">' + esc(x.name) + ' <span class="tag t-blue">' + esc(x.status) + '</span></div>' +
-        '<div class="rs" style="margin-top:4px">签约 ' + cnDate(x.signDate) + ' · ' + money(x.amount) + '</div>' +
-        '<div class="pbar"><i style="width:' + rate + '%"></i></div><div class="pline"><span>回款进度 ' + rate + '%</span><span>待收 ' + money(num(x.amount) - paid) + '</span></div></div>';
+      b += '<div class="card" style="margin-bottom:10px"><div class="rt" data-bd="contracts">' + esc(x.name) + ' <span class="tag t-blue">' + esc(x.status) + '</span></div>' +
+        '<div class="rs" data-bd="contracts" style="margin-top:4px">签约 ' + cnDate(x.signDate) + ' · ' + money(x.amount) + '</div>' +
+        '<div class="pbar"><i style="width:' + rate + '%"></i></div><div class="pline"><span data-bd="payments">回款进度 ' + rate + '%</span><span data-bd="payments">待收 ' + money(num(x.amount) - paid) + '</span></div></div>';
     });
   }
   var foot = '<button class="btn" data-act="cust-edit" data-id="' + c.id + '">编辑</button>' +
              '<button class="btn pri" data-act="cust-follow" data-id="' + c.id + '">记一笔跟进</button>';
   openSheet(c.name, b, foot);
+  markBinds(shBody);
 }
 function openContract(id){
-  var c = DB.contracts.find(function(x){ return x.id === id; });
+  var c = byId("contracts", id);
   if (!c) return;
   var ps = DB.payments.filter(function(p){ return p.contract === c.name; });
   var paid = ps.filter(function(p){ return p.status === "已收款"; }).reduce(function(a, p){ return a + num(p.amount); }, 0);
   var rate = num(c.amount) ? Math.min(100, Math.round(paid / num(c.amount) * 100)) : 0;
   var b = '<div class="sum3" style="margin-bottom:16px">' +
-    '<div class="sum"><div class="lab">合同金额</div><div class="val num">' + money(c.amount) + '</div></div>' +
-    '<div class="sum green"><div class="lab">已收</div><div class="val num">' + money(paid) + '</div></div>' +
-    '<div class="sum red"><div class="lab">待收</div><div class="val num">' + money(num(c.amount) - paid) + '</div></div></div>';
-  b += '<div class="pbar"><i style="width:' + rate + '%"></i></div><div class="pline"><span>回款进度 ' + rate + '%</span><span>签约 ' + cnDate(c.signDate) + '</span></div>';
-  b += '<div class="sec-title">回款计划<span class="cnt">' + ps.length + '</span></div>';
+    '<div class="sum"><div class="lab">合同金额</div><div class="val num" data-bd="contracts">' + money(c.amount) + '</div></div>' +
+    '<div class="sum green"><div class="lab">已收</div><div class="val num" data-bd="payments">' + money(paid) + '</div></div>' +
+    '<div class="sum red"><div class="lab">待收</div><div class="val num" data-bd="payments">' + money(num(c.amount) - paid) + '</div></div></div>';
+  b += '<div class="pbar"><i style="width:' + rate + '%"></i></div><div class="pline"><span data-bd="payments">回款进度 ' + rate + '%</span><span data-bd="contracts">签约 ' + cnDate(c.signDate) + '</span></div>';
+  b += '<div class="sec-title">回款计划<span class="cnt" data-bd="payments">' + ps.length + '</span></div>';
   if (!ps.length) b += '<div class="empty">还没有回款计划</div>';
   else b += ps.map(function(p){
     var st = payState(p);
     var tg = st === "已收款" ? "t-green" : (st === "逾期" ? "t-red" : "t-blue");
-    return '<div class="card" style="margin-bottom:10px;box-shadow:none"><div class="rt">' + esc(p.period) + ' <span class="tag ' + tg + '">' + st + '</span></div>' +
-      '<div class="rs" style="margin-top:4px">' + money(p.amount) + ' · 应收 ' + cnDate(p.dueDate) + ' · ' + dueText(p.dueDate) + '</div></div>';
+    return '<div class="card" style="margin-bottom:10px;box-shadow:none"><div class="rt" data-bd="payments">' + esc(p.period) + ' <span class="tag ' + tg + '">' + st + '</span></div>' +
+      '<div class="rs" data-bd="payments" style="margin-top:4px">' + money(p.amount) + ' · 应收 ' + cnDate(p.dueDate) + ' · ' + dueText(p.dueDate) + '</div></div>';
   }).join("");
-  if (c.note) b += '<div class="note">' + esc(c.note) + '</div>';
+  if (c.note) b += '<div class="note" data-bd="contracts">' + esc(c.note) + '</div>';
   var foot = '<button class="btn" data-act="contract-edit" data-id="' + c.id + '">编辑</button>' +
              '<button class="btn pri" data-act="contract-addpay" data-id="' + c.id + '">加回款计划</button>';
   openSheet(c.name, b, foot);
+  markBinds(shBody);
 }
 function openCourseDetail(id){
-  var c = DB.courses.find(function(x){ return x.id === id; });
+  var c = byId("courses", id);
   if (!c) return;
   var b = '<div class="sum3" style="margin-bottom:16px">' +
-    '<div class="sum"><div class="lab">学员</div><div class="val num">' + num(c.students) + '</div></div>' +
-    '<div class="sum"><div class="lab">课时</div><div class="val num">' + num(c.hours) + '</div></div>' +
-    '<div class="sum green"><div class="lab">课酬</div><div class="val num">' + money(c.fee) + '</div></div></div>';
-  b += '<div class="note" style="background:#fff">状态：<b>' + esc(c.status) + '</b><br>开课：<b>' + cnDate(c.startDate) + '</b>　交付：<b>' + cnDate(c.deliverDate) + '</b>' +
+    '<div class="sum"><div class="lab">学员</div><div class="val num" data-bd="courses">' + num(c.students) + '</div></div>' +
+    '<div class="sum"><div class="lab">课时</div><div class="val num" data-bd="courses">' + num(c.hours) + '</div></div>' +
+    '<div class="sum green"><div class="lab">课酬</div><div class="val num" data-bd="courses">' + money(c.fee) + '</div></div></div>';
+  b += '<div class="note" style="background:#fff" data-bd="courses">状态：<b>' + esc(c.status) + '</b><br>开课：<b>' + cnDate(c.startDate) + '</b>　交付：<b>' + cnDate(c.deliverDate) + '</b>' +
     (c.deliverDate ? '　<b>' + dueText(c.deliverDate) + '</b>' : "") + (c.note ? '<br>备注：<b>' + esc(c.note) + '</b>' : "") + '</div>';
   var foot = '<button class="btn" data-act="course-edit" data-id="' + c.id + '">编辑</button>' +
              '<button class="btn pri" data-act="course-done" data-id="' + c.id + '">标已结课</button>';
   openSheet(c.name, b, foot);
+  markBinds(shBody);
 }
 
 /* 顺延 */
@@ -1051,104 +1308,87 @@ document.addEventListener("click", function(e){
     case "cancel": closeSheet(); break;
     case "toggle-all": ui.showAll = !ui.showAll; renderHome(); break;
     case "task-done": {
-      var t = DB.tasks.find(function(x){ return x.id === id; });
-      if (t) { t.status = "已完成"; save(); render(); toast("已完成"); }
+      var t = byId("tasks", id);
+      if (t) { t.status = "已完成"; opUpd("tasks", t); commit("已完成"); }
       break;
     }
     case "task-defer": {
-      var t2 = DB.tasks.find(function(x){ return x.id === id; });
+      var t2 = byId("tasks", id);
       if (t2) deferSheet("顺延待办", function(n){
         t2.due = shift(n); t2.defer = num(t2.defer) + 1; t2.status = "已顺延";
-        save(); render(); toast("已顺延 " + n + " 天");
+        opUpd("tasks", t2); commit("已顺延 " + n + " 天");
       });
       break;
     }
     case "pay-done": {
-      var p = DB.payments.find(function(x){ return x.id === id; });
-      if (p) { p.status = "已收款"; p.paidDate = TODAY; save(); render(); toast("已收款 " + money(p.amount)); }
+      var p = byId("payments", id);
+      if (p) { p.status = "已收款"; p.paidDate = TODAY; opUpd("payments", p); commit("已收款 " + money(p.amount)); }
       break;
     }
     case "pay-undo": {
-      var p2 = DB.payments.find(function(x){ return x.id === id; });
-      if (p2) { p2.status = dd(TODAY, p2.dueDate) > 0 ? "逾期" : "未到期"; p2.paidDate = ""; save(); render(); toast("已撤销"); }
+      var p2 = byId("payments", id);
+      if (p2) { p2.status = dd(TODAY, p2.dueDate) > 0 ? "逾期" : "未到期"; p2.paidDate = ""; opUpd("payments", p2); commit("已撤销收款"); }
       break;
     }
     case "pay-defer": {
-      var p3 = DB.payments.find(function(x){ return x.id === id; });
+      var p3 = byId("payments", id);
       if (p3) deferSheet("顺延回款", function(n){
         p3.dueDate = shift(n); p3.defer = num(p3.defer) + 1; p3.status = "未到期";
-        save(); render(); toast("已顺延 " + n + " 天");
+        opUpd("payments", p3); commit("已顺延 " + n + " 天");
       });
       break;
     }
     case "course-done": {
-      var c = DB.courses.find(function(x){ return x.id === id; });
-      if (c && c.status !== "已结课") { c.status = "已结课"; save(); render(); toast("已标记结课"); }
+      var c = byId("courses", id);
+      if (c && c.status !== "已结课") { c.status = "已结课"; opUpd("courses", c); commit("已标记结课"); }
       else if (c) toast("该课程已结课");
       break;
     }
     case "cust-open": openCustomer(id); break;
-    case "cust-edit": {
-      var cc = DB.customers.find(function(x){ return x.id === id; });
-      if (cc) openForm("customer", cc);
-      break;
-    }
+    case "cust-edit": { var cc = byId("customers", id); if (cc) openForm("customer", cc); break; }
     case "cust-follow": {
-      var cf = DB.customers.find(function(x){ return x.id === id; });
+      var cf = byId("customers", id);
       if (cf) { closeSheet(); openForm("follow", { customer: cf.name }); }
       break;
     }
     case "contract-open": openContract(id); break;
-    case "contract-edit": {
-      var ce = DB.contracts.find(function(x){ return x.id === id; });
-      if (ce) openForm("contract", ce);
-      break;
-    }
+    case "contract-edit": { var ce = byId("contracts", id); if (ce) openForm("contract", ce); break; }
     case "contract-addpay": {
-      var ca = DB.contracts.find(function(x){ return x.id === id; });
+      var ca = byId("contracts", id);
       if (ca) { closeSheet(); openForm("payment", { contract: ca.name, customer: ca.customer }); }
       break;
     }
     case "course-open": openCourseDetail(id); break;
-    case "course-edit": {
-      var co = DB.courses.find(function(x){ return x.id === id; });
-      if (co) openForm("course", co);
-      break;
-    }
+    case "course-edit": { var co = byId("courses", id); if (co) openForm("course", co); break; }
   }
 });
 
-/* ===================== 设置 / 数据管理 ===================== */
+/* ===================== 设置与数据管理 ===================== */
 document.getElementById("btn-set").addEventListener("click", openSettings);
 function openSettings(){
-  var cfg = getCfg();
-  var b = '<div class="note" style="margin-top:0"><b>数据存在哪：</b>默认只存在这台设备的浏览器里。填一个 GitHub 私有 Gist 令牌后，手机和电脑打开同一链接数据自动同步（令牌只存在本机，不会上传）。</div>';
+  var b = '<div class="note" style="margin-top:0"><b>数据存在哪：</b>' +
+    (CLOUD
+      ? '已接入资料库云端数据表，<b>手机和电脑打开同一个链接数据实时一致</b>，任何改动立即写回云端。断网时自动用本机缓存，联网后补传。'
+      : '当前是<b>本地模式</b>，数据只存在这台设备。在资料库里打开这个页面，就会自动切换成云端同步。') +
+    '</div>';
   b += '<div class="sec-title">云端同步</div>';
-  b += '<div class="field"><label>GitHub 个人访问令牌（只需 gist 权限）</label>' +
-       '<input id="s-token" type="password" placeholder="ghp_ 开头" value="' + esc(cfg.token || "") + '" autocomplete="off"></div>';
-  b += '<div class="field"><label>Gist ID（留空 = 自动新建一个私有 Gist）</label>' +
-       '<input id="s-gist" placeholder="留空即可" value="' + esc(cfg.gistId || "") + '" autocomplete="off"></div>';
-  b += '<div style="display:flex;gap:10px"><button class="btn sm pri" id="s-save">保存并同步</button>' +
-       (cfg.token ? '<button class="btn sm" id="s-off">断开同步</button>' : "") + '</div>';
+  b += '<button class="set-row" id="s-refresh"><span class="mb">' + svg("cloud") + '</span>' +
+       '<span><span class="st">从云端重新拉取</span><span class="ss">手动刷新最新数据</span></span><span class="chev">' + svg("chev") + '</span></button>';
+  b += '<div class="note">六张云端表：客户表 / 待办任务表 / 合同表 / 回款计划表 / 课程表 / 跟进记录表，共 ' + recCount() + ' 条记录。</div>';
   b += '<div class="sec-title" style="margin-top:18px">数据管理</div>';
-  b += '<button class="set-row" id="s-export"><span class="mb">' + svg("edit") + '</span><span><span class="st">导出 JSON 备份</span><span class="ss">当前共 ' + recCount() + ' 条记录</span></span><span class="chev">' + svg("chev") + '</span></button>';
+  b += '<button class="set-row" id="s-export"><span class="mb">' + svg("cloud") + '</span><span><span class="st">导出 JSON 备份</span><span class="ss">当前共 ' + recCount() + ' 条记录</span></span><span class="chev">' + svg("chev") + '</span></button>';
   b += '<button class="set-row" id="s-import"><span class="mb">' + svg("plus") + '</span><span><span class="st">从 JSON 恢复</span><span class="ss">导入会覆盖当前数据</span></span><span class="chev">' + svg("chev") + '</span></button>';
-  b += '<button class="set-row" id="s-seed"><span class="mb">' + svg("plus") + '</span><span><span class="st">重置为示例数据</span><span class="ss">清空并重新写入 6 张表示例</span></span><span class="chev">' + svg("chev") + '</span></button>';
+  b += '<button class="set-row" id="s-seed"><span class="mb">' + svg("plus") + '</span><span><span class="st">重置为示例数据</span><span class="ss">清空并重新写入一套示例</span></span><span class="chev">' + svg("chev") + '</span></button>';
   b += '<button class="set-row" id="s-clear"><span class="mb" style="color:var(--red)">' + svg("del") + '</span><span><span class="st" style="color:var(--red)">清空全部数据</span><span class="ss">不可恢复，请先导出备份</span></span><span class="chev">' + svg("chev") + '</span></button>';
   b += '<div class="note">阈值设置：逾期 <b>' + OVERDUE_P0 + '</b> 天以上判定 P0 置顶；顺延档位 <b>' + DEFERS.join(" / ") + '</b> 天；到期前 <b>' + NEAR_DAYS + '</b> 天进入提醒范围。</div>';
   openSheet("设置与数据", b, "");
 
-  document.getElementById("s-save").onclick = function(){
-    var tk = document.getElementById("s-token").value.trim();
-    var gi = document.getElementById("s-gist").value.trim();
-    setCfg({ token: tk, gistId: gi });
+  document.getElementById("s-refresh").onclick = function(){
     closeSheet();
-    if (!tk) { toast("已断开云端同步"); setSync("off", "未连接"); return; }
-    doSync(true);
-  };
-  var off = document.getElementById("s-off");
-  if (off) off.onclick = function(){
-    setCfg({}); localStorage.removeItem(LS_SYNC); closeSheet(); setSync("off", "未连接"); toast("已断开云端同步");
+    if (!CLOUD) { toast("本地模式无需拉取"); return; }
+    setSync("busy", "同步中");
+    cloudLoad().then(function(){ cacheWrite(); render(); setSync("ok", "已同步"); toast("已拉取云端最新数据"); },
+      function(){ setSync("off", "离线模式"); toast("拉取失败，沿用本机缓存"); });
   };
   document.getElementById("s-export").onclick = function(){ exportJSON(); };
   document.getElementById("s-import").onclick = function(){
@@ -1161,8 +1401,9 @@ function openSettings(){
         try {
           var o = JSON.parse(r.result);
           if (!o || !Array.isArray(o.customers)) throw new Error("格式不符");
-          TABLES.forEach(function(t){ DB[t] = Array.isArray(o[t]) ? o[t] : []; });
-          save(); closeSheet(); render(); toast("已恢复 " + recCount() + " 条记录");
+          closeSheet();
+          replaceAll(o);
+          commit("已恢复 " + recCount() + " 条记录");
         } catch (err) { toast("导入失败：文件格式不符"); }
       };
       r.readAsText(f);
@@ -1172,17 +1413,30 @@ function openSettings(){
   document.getElementById("s-seed").onclick = function(){
     closeSheet();
     confirmSheet("重置为示例数据？", "当前所有记录会被清空，并重新写入一套示例数据。", "确认重置", function(){
-      TABLES.forEach(function(t){ DB[t] = []; });
-      seed(); render(); toast("已重置为示例数据");
+      replaceAll(null);
+      loadDemo(CLOUD);
+      commit("已重置为示例数据");
     });
   };
   document.getElementById("s-clear").onclick = function(){
     closeSheet();
     confirmSheet("清空全部数据？", "所有客户、合同、回款、课程、待办与跟进记录都会被删除，且无法恢复。", "确认清空", function(){
-      TABLES.forEach(function(t){ DB[t] = []; });
-      save(); render(); toast("已清空全部数据");
+      replaceAll(null);
+      commit("已清空全部数据");
     });
   };
+}
+/* data 为空时清空；非空时替换为该数据（云端模式下同步删除/新增） */
+function replaceAll(data){
+  TABLES.forEach(function(t){
+    DB[t].slice().forEach(function(o){ opDel(t, o); });
+    DB[t] = [];
+    if (data) {
+      (Array.isArray(data[t]) ? data[t] : []).forEach(function(o){
+        o.id = uid(); delete o._rid; DB[t].push(o); OPS.push({ k: "add", t: t, o: o });
+      });
+    }
+  });
 }
 function exportJSON(){
   var blob = new Blob([JSON.stringify(DB, null, 2)], { type: "application/json" });
@@ -1195,95 +1449,35 @@ function exportJSON(){
 }
 document.getElementById("btn-backup-now").addEventListener("click", exportJSON);
 
-/* ===================== 云端同步（GitHub 私有 Gist） ===================== */
-function getCfg(){ try { return JSON.parse(localStorage.getItem(LS_SYNC)) || {}; } catch (e) { return {}; } }
-function setCfg(c){ localStorage.setItem(LS_SYNC, JSON.stringify(c)); }
-function setSync(state, text){
-  var p = document.getElementById("sync-pill");
-  p.className = "sync-pill " + state;
-  document.getElementById("sync-txt").textContent = text;
-  document.getElementById("offline-bar").classList.toggle("hide", state !== "off");
-}
-function api(path, method, body){
-  var cfg = getCfg();
-  var headers = { "Accept": "application/vnd.github+json" };
-  if (cfg.token) headers["Authorization"] = "Bearer " + cfg.token;
-  if (body) headers["Content-Type"] = "application/json";
-  return fetch("https://api.github.com" + path, {
-    method: method || "GET",
-    headers: headers,
-    body: body ? JSON.stringify(body) : undefined
-  }).then(function(res){
-    if (!res.ok) { var e = new Error("HTTP " + res.status); e.status = res.status; throw e; }
-    return res.json();
-  });
-}
-var syncTimer, syncing = false;
-function scheduleSync(){
-  var cfg = getCfg();
-  if (!cfg.token) return;
-  clearTimeout(syncTimer);
-  syncTimer = setTimeout(function(){ doSync(false); }, 900);
-}
-function doSync(manual){
-  var cfg = getCfg();
-  if (!cfg.token) { setSync("off", "未连接"); return Promise.resolve(); }
-  if (syncing) return Promise.resolve();
-  if (!navigator.onLine) { setSync("off", "离线模式"); return Promise.resolve(); }
-  syncing = true;
-  setSync("busy", "同步中");
-  var content = JSON.stringify(DB);
-  var job;
-  if (cfg.gistId) {
-    job = api("/gists/" + cfg.gistId, "GET").then(function(g){
-      var file = g.files && g.files[GIST_FILE];
-      var remote = null;
-      if (file) { try { remote = JSON.parse(file.content); } catch (e) {} }
-      if (remote && remote.meta && remote.meta.savedAt && (!DB.meta.savedAt || remote.meta.savedAt > DB.meta.savedAt)) {
-        TABLES.forEach(function(t){ DB[t] = Array.isArray(remote[t]) ? remote[t] : []; });
-        DB.meta = remote.meta || { savedAt: "" };
-        localStorage.setItem(LS_DB, JSON.stringify(DB));
-        render();
-        return { pulled: true };
-      }
-      return api("/gists/" + cfg.gistId, "PATCH", { files: (function(){ var o = {}; o[GIST_FILE] = { content: content }; return o; })() })
-        .then(function(){ return { pulled: false }; });
-    }).catch(function(e){
-      if (e.status === 404) {
-        return api("/gists", "POST", { description: "培训师工作台数据", public: false, files: (function(){ var o = {}; o[GIST_FILE] = { content: content }; return o; })() })
-          .then(function(r){ cfg.gistId = r.id; setCfg(cfg); return { pulled: false }; });
-      }
-      throw e;
-    });
-  } else {
-    job = api("/gists", "POST", { description: "培训师工作台数据", public: false, files: (function(){ var o = {}; o[GIST_FILE] = { content: content }; return o; })() })
-      .then(function(r){ cfg.gistId = r.id; setCfg(cfg); return { pulled: false }; });
-  }
-  return job.then(function(r){
-    syncing = false;
-    setSync("ok", "已同步");
-    if (manual) toast(r.pulled ? "已拉取云端最新数据" : "已同步到云端");
-  }).catch(function(e){
-    syncing = false;
-    var msg = e.status === 401 ? "令牌无效" : (e.status === 403 ? "令牌无权限" : "离线模式");
-    setSync("off", msg);
-    if (manual) toast("同步失败：" + msg);
-  });
-}
-window.addEventListener("online", function(){ doSync(false); });
-window.addEventListener("offline", function(){ setSync("off", "离线模式"); });
-
 /* ===================== 启动 ===================== */
 (function init(){
   var d = new Date();
   var wk = ["日", "一", "二", "三", "四", "五", "六"][d.getDay()];
   document.getElementById("tb-date").textContent = (d.getMonth() + 1) + "月" + d.getDate() + "日 周" + wk;
-  var has = load();
-  if (!has && SEED_DEMO) seed();
-  var cfg = getCfg();
-  if (cfg.token) { setSync("busy", "同步中"); doSync(false); } else setSync("off", "未连接");
-  if (!navigator.onLine) setSync("off", "离线模式");
-  render();
+  var hadCache = cacheRead();
+  if (CLOUD) {
+    setSync("busy", "同步中");
+    if (hadCache) render();
+    cloudLoad().then(function(){
+      cacheWrite(); render(); setSync("ok", "已同步");
+    }, function(){
+      if (!hadCache) { loadDemo(false); cacheWrite(); }
+      render();
+      setSync("off", "本地模式");
+    });
+  } else {
+    if (!hadCache) { loadDemo(false); cacheWrite(); }
+    render();
+    setSync("off", "本地模式");
+  }
+  window.addEventListener("online", function(){
+    if (!CLOUD) return;
+    setSync("busy", "同步中");
+    runOps().then(function(){ return cloudLoad(); }).then(function(){
+      cacheWrite(); render(); setSync("ok", "已同步");
+    }, function(){ setSync("off", "离线模式"); });
+  });
+  window.addEventListener("offline", function(){ setSync("off", "离线模式"); });
 })();
 </script>
 </body>
